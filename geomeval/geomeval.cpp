@@ -1,5 +1,4 @@
 
-
 #include <string>
 #include <iostream>
 using namespace std;
@@ -12,18 +11,33 @@ using namespace std;
 #include "trimesh.h"
 
 
+
+
+#ifdef WIN32
+#include <windows.h>
+#include "gui.h"
+#include "guicon.h"
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
+				   LPSTR lpCmdLine, int iCmdShow) {
+
+#else
 int main(int argc, char* argv[]) {
+
+#endif
+
 
   interval_t interval1, result;
   string infix, postfix;
   float x, y, z;   
   
+  RedirectIOToConsole();
+
   // Define the evaluation interval for the expression  
   interval1.set_real_interval(-1.25, 1.25);
   space_interval_t si(interval1, interval1, interval1);
  
   // Convert an infix string (for a circle) to a postfix string 
-  infix = "X**2 + Y**2 < 1";
+  infix = "X < 1";
   postfix = convert_infix_to_postfix(infix);
   
   // Display infix and postfix string 
@@ -83,7 +97,14 @@ int main(int argc, char* argv[]) {
   trimesh.populate(&octree, &si, 50, 50, 50);
   trimesh.write_stl("stlfile.stl");
 
-  //cout << trimesh;
+ // cout << trimesh;
+
+//	cout << "Hello, world!\n";
+#ifdef WIN32
+  show_graphics_window(hInstance);
+#endif
+
+
 
   return(0);
 

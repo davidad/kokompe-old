@@ -221,7 +221,7 @@ expression_t::expression_t(string postfix) {
       //cout << "number is " << x << "\n";
       if (errno) {
 	cout << "Error parsing postfix expression.";
-	exit(1);
+	exit(189);
       }
       else {
 	// 1. create a leaf node, i.e. a node having no child

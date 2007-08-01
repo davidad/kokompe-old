@@ -8,7 +8,9 @@ using namespace std;
 
 #include "interval.h"
 
-#define M_PI 3.14159
+#ifndef M_PI
+#define M_PI 3.14159f
+#endif
 
 // An interval on the real line
 
@@ -78,7 +80,7 @@ interval_t interval_t::sub(const interval_t &a, const interval_t& b) {
 interval_t interval_t::mul(const interval_t &a, const interval_t& b) {
   interval_t result;
   float c[4];
-  float min = HUGE, max = -HUGE;
+  float min = (float)HUGE, max = -(float)HUGE;
   int i;
 
   // Number multiplication
@@ -170,7 +172,7 @@ interval_t interval_t::div(const interval_t &a, const interval_t& b) {
       // set interval to +/- Inf
       cout << "Division by interval containing zero.\n";
 
-      temp.set_real_interval(-HUGE, +HUGE);
+      temp.set_real_interval(-(float)HUGE, +(float)HUGE);
     }
   }
   // cout << "about to return.\n";
@@ -309,7 +311,7 @@ interval_t interval_t::sin(const interval_t &a, const interval_t &b) {
       result.set_real_interval(-1.0f, 1.0f);
     }
     else {
-      mod_arg = fmodf(a.lower,2*M_PI);
+      mod_arg = fmodf(a.lower,2*(float)M_PI);
       
       x = sinf(a.lower);
       y = sinf(a.upper);
@@ -351,7 +353,7 @@ interval_t interval_t::cos(const interval_t &a, const interval_t &b) {
     return(result);
   }
   else {
-    offset.set_real_number(M_PI/2);
+    offset.set_real_number((float)M_PI/2);
     return(sin(add(a, offset), offset)); 
   }
 }

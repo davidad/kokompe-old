@@ -218,18 +218,18 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
       else {
         //cout << zone_interval.get_lower() << " " << eval_interval.get_lower() << " " << eval_info->step[i] << " for i = " << i << "\n";
 
-        start_index[i] = (int)(ceilf((zone_interval.get_lower() - eval_interval.get_lower() - 0.5*eval_info->step[i])*eval_info->step_recip[i]));
+        start_index[i] = (int)(ceilf((zone_interval.get_lower() - eval_interval.get_lower() - 0.5f*eval_info->step[i])*eval_info->step_recip[i]));
       }
       
       if (eval_interval.get_upper() <= zone_interval.get_upper()) {
         end_index[i] = eval_info->n[i] - 1;
       }
       else {
-        end_index[i] = (int)(floorf((zone_interval.get_upper() - eval_interval.get_lower() - 0.5*eval_info->step[i])*eval_info->step_recip[i]));
+        end_index[i] = (int)(floorf((zone_interval.get_upper() - eval_interval.get_lower() - 0.5f*eval_info->step[i])*eval_info->step_recip[i]));
       }
       
       num_pts[i] = end_index[i] - start_index[i] + 1;
-      start_point[i] = eval_interval.get_lower() + 0.5*eval_info->step[i] + start_index[i]*eval_info->step[i];
+      start_point[i] = eval_interval.get_lower() + 0.5f*eval_info->step[i] + start_index[i]*eval_info->step[i];
       
     }
     
@@ -241,7 +241,7 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
 
 
 
-    int xstart, ystart, zstart;
+    int ystart, zstart;
     // Compute the x, y, and z stride for the array inside the evaluation loop
     xstride = 1;
     ystride = eval_info->n[0];
