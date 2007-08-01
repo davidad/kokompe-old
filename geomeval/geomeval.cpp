@@ -29,9 +29,11 @@ int main(int argc, char* argv[]) {
   interval_t interval1, result;
   string infix, postfix;
   float x, y, z;   
-  
+ 
+#ifdef WIN32  
   RedirectIOToConsole();
-
+#endif
+  
   // Define the evaluation interval for the expression  
   interval1.set_real_interval(-1.25, 1.25);
   space_interval_t si(interval1, interval1, interval1);

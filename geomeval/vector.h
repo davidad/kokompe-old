@@ -2,6 +2,7 @@
 #define VECTOR_T
 
 #include <string>
+#include <iostream>
 using namespace std;
 
 
@@ -20,3 +21,4 @@ public:
 ostream& operator<<(ostream &s, const vector_t &v);
 
 #endif
+

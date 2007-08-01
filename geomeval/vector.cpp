@@ -1,5 +1,7 @@
 #include "vector.h"
 
+#include <iostream>
+using namespace std;
 
 vector_t::vector_t() {
 	x = 0;
@@ -20,3 +22,4 @@ void vector_t::set(float x, float y, float z) {
 ostream& operator<<(ostream &s, const vector_t &v) {
 	return(s << "(" << v.x << "," << v.y << "," << v.z << ")");  
 }
+
