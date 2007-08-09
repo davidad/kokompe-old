@@ -21,6 +21,8 @@ private:
   void space_interval_t::set_point(float x, float y, float z);
   interval_t get_var_value(int i);
   int get_zone(float x, float y, float z);
+  int is_on(float x, float y, float z);
+  void set(float xmin, float xmax, float ymin, float ymax, float zmin, float zmax);
   friend ostream& operator<<(ostream &s, const space_interval_t &si);
  
 };

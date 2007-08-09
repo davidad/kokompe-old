@@ -27,6 +27,14 @@ space_interval_t::space_interval_t(interval_t& X_interval, interval_t& Y_interva
   Z = Z_interval;
 }
 
+void space_interval_t::set(float xmin, float xmax, float ymin, float ymax, float zmin, float zmax) {
+	X.set_real_interval(xmin, xmax);
+	Y.set_real_interval(ymin, ymax);
+	Z.set_real_interval(zmin, zmax);
+}
+
+
+
 ostream& operator<<(ostream&s, const space_interval_t &si) {
   return( s << "{ X:" << si.X <<" Y:" << si.Y << " Z:" << si.Z <<" }");   
 }
@@ -64,7 +72,9 @@ int space_interval_t::overlaps(const space_interval_t &b) const {
   return(X.overlaps(b.X) && Y.overlaps(b.Y) && Z.overlaps(b.Z));
 }
 
-
+int space_interval_t::is_on(float x, float y, float z) {
+	return(X.is_on(x) && Y.is_on(y) && Z.is_on(z));
+}
 
 // Get interval
 interval_t space_interval_t::get_var_value(int i) {

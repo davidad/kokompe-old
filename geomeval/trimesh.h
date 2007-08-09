@@ -19,14 +19,87 @@
 #include <list>
 using namespace std;
 
+#ifdef WIN32
+#include <windows.h>
+#include <gl/gl.h>
+#endif
+
+class trimesh_node_t;
+
+class vertex_t : public vector_t {
+public:
+	int number;
+	space_interval_t si;
+	int dirty;
+	list<trimesh_node_t*> triangle_list;
+	vertex_t(float x, float y, float z)
+		: vector_t(x,y,z),
+		number(-1) {		
+	}
+	vertex_t(float ax, float ay, float az, int a_number) {
+		x=ax;
+		y=ay;
+		z=az;
+		number=a_number;
+		dirty = 0;
+	}
+	vertex_t() {
+	}
+	vertex_t(const vector_t& base)
+		: vector_t(base) {
+	}
+	
+	void set_vector(const vector_t& a) {
+		x = a.x;
+		y = a.y;
+		z = a.z;
+	}
+};
+
+
+
+/* Triangle convention:
+
+				E2	
+		V0			  V2	
+          *----------*
+           \        /
+			\      /		Normal out of the page by right hand rule
+		E0	 \    /   E1
+			  \  /
+			   *
+			   V1
+
+   Verticies are stored in a sepeate list, pointed to by each triangle that
+   uses them.  Each triangle points to its three edge neighbors, NULL for
+   disconnected ends.  */
+
+
 class trimesh_node_t {
 public:
-	vector_t *verticies[3];
+	vertex_t *verticies[3];
+	trimesh_node_t *neighbors[3];    // edge neighbors of this triangle
 	vector_t normal;
 	vector_t* interior_point;
 	vector_t* exterior_point;
-	//trimesh_node_t* neighbors[3];	
+	int dirty;	
+	float centroid_to_object;
+
+	static int repair_triangles(trimesh_node_t* triangle_a, trimesh_node_t* triangle_b);
+    static int divide_triangle(trimesh_node_t* triangle1, trimesh_node_t* triangle2,trimesh_node_t * triangle3,
+											 vertex_t* vertex,
+											 octree_t* octree,
+											float search_distance);
+
 	friend ostream& operator<<(ostream &s, const trimesh_node_t &v);
+
+	trimesh_node_t() {
+		dirty = 0;
+		centroid_to_object = 0;
+		for (int i=0; i<3; i++) {
+			neighbors[i] = NULL;
+		}
+	}
 };
 
 ostream& operator<<(ostream &s, const trimesh_node_t &v);
@@ -40,11 +113,12 @@ public:
 };
 
 
+
 class trimesh_t {
 private:
 	// Class members defining the trimesh iteself
 	list<trimesh_node_t*> triangles;		
-	list<vector_t*> verticies;				
+	list<vertex_t*> verticies;				
 
 	// Class members that provide context about the trimesh
 	list<vector_t*> vertex_inside_point;
@@ -65,9 +139,10 @@ private:
 	marking the corners (used as vertices of triangles) in the
 	above vertex table */
 	char *voxel_table[3]; 
-	vector_t **verticies_table[3];
+	vertex_t **verticies_table[3];
 	vector_t **voxel_centers_table[3];
-	
+	int next_vertex_number;
+
 	// Class Methods:
 	void initialize_tables();
 	void fill_voxels(interval_t X, interval_t Y, int index);
@@ -75,7 +150,7 @@ private:
 						  int in_ix, int in_iy, int in_iz,
 						  int out_slice, int out_index,
 						  int out_ix, int out_iy, int out_iz);
-
+	
 
 public:
 	trimesh_t();	// Constructor
@@ -83,6 +158,15 @@ public:
 	void populate(octree_t* octree, space_interval_t* region, int nx, int ny, int nz);
 	// Write an 3D Systems Format Binary STL file from a triangulated mesh
 	void write_stl(string filename);
+	void drawgl();
+	void remove_splinters();
+	void refine();
+	void edge_refine();
+	void recalculate_normals();
+	void mark_triangles_needing_division();
+	void trimesh_t::divide_triangles();
+	void trimesh_t::move_verticies_toward_corners();
+	void trimesh_t::add_centroid_to_object_distance(); 
 
 	friend ostream& operator<<(ostream &s, trimesh_t &v);
 };

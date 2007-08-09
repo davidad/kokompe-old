@@ -132,6 +132,7 @@ interval_t octree_t::get_value_at_point(float x, float y, float z) {
 }
 
 int octree_t::eval_at_point(float x, float y, float z) {
+  static octree_t* zone_hint = NULL;
   if (children == NULL) {
     if (value.is_resolved()) {
       return(value.get_boolean());
@@ -147,11 +148,27 @@ int octree_t::eval_at_point(float x, float y, float z) {
       zi.set_real_number(z);
       space_interval_t si(xi, yi, zi);
       result = expression->eval(si);
+	  zone_hint = this;
       return(result.get_boolean());
     }
   }
   else {
-    return(children[space_interval.get_zone(x,y,z)]->eval_at_point(x, y, z));
+	  // The zone hint is the last leaf node which terminated a search.  If
+	  // we need to drill down, check this leaf node first.  (Because this function
+	  // is often repeatedly called inside a line search with almost identical 
+	  // values from iteration to iteration.)
+
+	  if (zone_hint != NULL) {
+		  if (zone_hint->space_interval.is_on(x,y,z)) {
+			return(zone_hint->eval_at_point(x,y,z));
+		  }
+		  else {
+			zone_hint = NULL;
+		  }
+	  }
+	  else {
+	  }
+	  return(children[space_interval.get_zone(x,y,z)]->eval_at_point(x, y, z));
   }
 }
 

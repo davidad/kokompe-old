@@ -40,6 +40,7 @@ private:
   int overlaps(const interval_t &b) const;
   void expand_to_include_number(float x);
   float get_length();
+  int is_on(float number);
 
   static interval_t add(const interval_t &a, const interval_t &b);
   static interval_t sub(const interval_t &a,const interval_t &b);
@@ -207,8 +208,12 @@ inline  void interval_t::expand_to_include_number(float x) {
     status = real_interval;
   }
 
-
-
+inline int interval_t::is_on(float number) {
+	if ((number >= lower) && (number <= upper))
+		return(1);
+	else
+		return(0);
+}
 
 
 

@@ -1,5 +1,5 @@
 CC := g++
-CFLAGS := -Wall -O3 -I..
+CFLAGS := -g -pg -Wall -O3 -I..
 
 geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
 geomeval:=geomeval
@@ -8,7 +8,7 @@ geomeval:=geomeval
 all:  $(geomeval)
 
 $(geomeval): $(geomeval_obj)
-	g++ -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
+	g++ -g -pg -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
 
 %.o: %.c
 	gcc -c -o $@ $< $(CFLAGS)
