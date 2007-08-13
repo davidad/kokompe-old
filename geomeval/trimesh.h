@@ -158,6 +158,7 @@ public:
 	void populate(octree_t* octree, space_interval_t* region, int nx, int ny, int nz);
 	// Write an 3D Systems Format Binary STL file from a triangulated mesh
 	void write_stl(string filename);
+	void fill_stl(char **buffer, int *length);
 	void drawgl();
 	void remove_splinters();
 	void refine();
