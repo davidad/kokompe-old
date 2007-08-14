@@ -1591,68 +1591,80 @@ ostream& operator<<(ostream &s, const trimesh_node_t &v) {
 
 
 
-void trimesh_t::write_stl(string filename) {
-	
-// Binary STL file format is described in
-// Automated Fabrication, by Marshall Burns, Ch.6
-// and at http://www.ennex.com/~fabbers/StL.asp
-	 
-	fstream stl_file (filename.c_str(), ios::binary | ios::out | ios::trunc);
-	char header[80] = "Created by geomeval 0.1";
-    list<trimesh_node_t*>::iterator triangle_iterator;
-	stl_facet_t stl_facet;
-	unsigned int num_facets = (unsigned int)num_triangles;  
-	unsigned short attr_byte_count = 0;
+void trimesh_t::fill_stl(char **buffer, int *buffer_size) {
+  list<trimesh_node_t*>::iterator triangle_iterator;
+  stl_facet_t stl_facet;
+  unsigned int num_facets = (unsigned int)num_triangles;  
+  unsigned short attr_byte_count = 0;
+  char *ptr;
 
-	if (stl_file.fail()) {
-		cout << "Error opening STL output file.\n";
-		return;
-	}
-	else {
-//		cout << "writing STL file.\n";
-		stl_file.write(header, 80);
-		stl_file.write((char*)&num_facets, 4);
+  // Binary STL file format is described in
+  // Automated Fabrication, by Marshall Burns, Ch.6
+  // and at http://www.ennex.com/~fabbers/StL.asp
+  
+  cout << "1\n";
 
-//		stl_facet.abc0 = 0;
-//		stl_facet.abc1 = 0;
+  // Compute size of stl file in bytes
+  *buffer_size = 80 + num_triangles*(sizeof(stl_facet_t)+sizeof(unsigned short));
 
-		//cout << "sizeof char " << sizeof(char) << "\n";
-		//cout << "sizeof vector_t " << sizeof(vector_t) << "\n";
-		//cout << "sizeof float " << sizeof(float) << "\n";
+  cout << "2\n";
 
+  // Allocate memory buffer
+  *buffer = new char[*buffer_size];
+    cout << "3\n";
+  ptr = *buffer;
+  cout << "4\n";
 
-		for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
-			stl_facet.normal = (*triangle_iterator)->normal;
-			stl_facet.vertex_1 = *((*triangle_iterator)->verticies[0]);
-			stl_facet.vertex_2 = *((*triangle_iterator)->verticies[1]);
-			stl_facet.vertex_3 = *((*triangle_iterator)->verticies[2]);
+  // Write header
+  char header[80] = "Created by Fab Server 0.1";
+  cout << "5\n";
+  memcpy(ptr, header, 80);
+  cout << "6\n";
+  ptr += 80;
+  cout << "7\n";
 
-			stl_facet.vertex_1.x += 10.0f;
-			stl_facet.vertex_1.y += 10.0f;
-			stl_facet.vertex_1.z += 10.0f;
-
-			stl_facet.vertex_2.x += 10.0f;
-			stl_facet.vertex_2.y += 10.0f;
-			stl_facet.vertex_2.z += 10.0f;
-
-			stl_facet.vertex_3.x += 10.0f;
-			stl_facet.vertex_3.y += 10.0f;
-			stl_facet.vertex_3.z += 10.0f;
-
-
-
-			stl_file.write((char*)&stl_facet, sizeof(stl_facet_t));
-			stl_file.write((char*)&attr_byte_count, sizeof(unsigned short));	
-//			cout << "wrote facet size " << sizeof(stl_facet_t) + sizeof(unsigned short) << "\n";
-			
-		}
-		
-		stl_file.close();
-//		cout << "closed file.\n";
-		
-	}
+  // Write number of triangles to STL data
+  memcpy(ptr, (char*)&num_facets, 4);
+  cout << "8\n";  
+ptr += 4;
+   cout << "9\n";
+  // Write triangles to STL data
+  for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+    cout << "9.1\n";
+    stl_facet.normal = (*triangle_iterator)->normal;
+    stl_facet.vertex_1 = *((*triangle_iterator)->verticies[0]);
+    stl_facet.vertex_2 = *((*triangle_iterator)->verticies[1]);
+    stl_facet.vertex_3 = *((*triangle_iterator)->verticies[2]);
+    
+    stl_facet.vertex_1.x += 10.0f;
+    stl_facet.vertex_1.y += 10.0f;
+    stl_facet.vertex_1.z += 10.0f;
+    
+    stl_facet.vertex_2.x += 10.0f;
+    stl_facet.vertex_2.y += 10.0f;
+    stl_facet.vertex_2.z += 10.0f;
+    
+    stl_facet.vertex_3.x += 10.0f;
+    stl_facet.vertex_3.y += 10.0f;
+    stl_facet.vertex_3.z += 10.0f;
+        
+    cout << "9.2\n";
+    memcpy(ptr, (char*)&stl_facet, sizeof(stl_facet_t));
+    cout << "9.2\n";
+    ptr += sizeof(stl_facet_t);
+    cout << "9.3\n";
+    memcpy(ptr, (char*)&attr_byte_count, sizeof(unsigned short));
+    cout << "9.4\n";  
+    ptr += sizeof(unsigned short);
+    cout << "9.5\n";
+  }
+  cout << "10\n";  
 
 }
+
+
+
+
 void trimesh_t::drawgl() {
 
 
@@ -1704,6 +1716,73 @@ void trimesh_t::drawgl() {
 #endif
 
 }
+
+
+void trimesh_t::write_stl(string filename) {
+  
+  // Binary STL file format is described in
+  // Automated Fabrication, by Marshall Burns, Ch.6
+  // and at http://www.ennex.com/~fabbers/StL.asp
+   
+  fstream stl_file (filename.c_str(), ios::binary | ios::out | ios::trunc);
+  char header[80] = "Created by geomeval 0.1";
+  list<trimesh_node_t*>::iterator triangle_iterator;
+  stl_facet_t stl_facet;
+  unsigned int num_facets = (unsigned int)num_triangles;  
+  unsigned short attr_byte_count = 0;
+
+  if (stl_file.fail()) {
+    cout << "Error opening STL output file.\n";
+    return;
+  }
+  else {
+    //cout << "writing STL file.\n";
+    stl_file.write(header, 80);
+    stl_file.write((char*)&num_facets, 4);
+
+    //stl_facet.abc0 = 0;
+    //stl_facet.abc1 = 0;
+
+    //cout << "sizeof char " << sizeof(char) << "\n";
+    //cout << "sizeof vector_t " << sizeof(vector_t) << "\n";
+    //cout << "sizeof float " << sizeof(float) << "\n";
+
+
+    for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+      stl_facet.normal = (*triangle_iterator)->normal;
+      stl_facet.vertex_1 = *((*triangle_iterator)->verticies[0]);
+      stl_facet.vertex_2 = *((*triangle_iterator)->verticies[1]);
+      stl_facet.vertex_3 = *((*triangle_iterator)->verticies[2]);
+
+      stl_facet.vertex_1.x += 10.0f;
+      stl_facet.vertex_1.y += 10.0f;
+      stl_facet.vertex_1.z += 10.0f;
+
+      stl_facet.vertex_2.x += 10.0f;
+      stl_facet.vertex_2.y += 10.0f;
+      stl_facet.vertex_2.z += 10.0f;
+
+      stl_facet.vertex_3.x += 10.0f;
+      stl_facet.vertex_3.y += 10.0f;
+      stl_facet.vertex_3.z += 10.0f;
+
+
+
+      stl_file.write((char*)&stl_facet, sizeof(stl_facet_t));
+      stl_file.write((char*)&attr_byte_count, sizeof(unsigned short));
+      //cout << "wrote facet size " << sizeof(stl_facet_t) + sizeof(unsigned short) << "\n";
+      
+    }
+    
+    stl_file.close();
+    //cout << "closed file.\n";
+    
+  }
+
+}
+
+
+
 
 
 // procedure:  walk octree, generating triangulated mesh.  need to mark
