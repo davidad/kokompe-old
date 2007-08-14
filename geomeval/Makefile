@@ -1,7 +1,7 @@
 CC := g++
 CFLAGS := -g -pg -Wall -O3 -I..
 
-geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
+geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o
 geomeval:=geomeval
 
 
@@ -21,3 +21,6 @@ clean: tidy
 
 tidy:
 	rm -f $(geomeval_obj)
+
+run: all
+	./geomeval

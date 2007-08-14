@@ -759,6 +759,7 @@ string convert_infix_to_postfix(string infix) {
 	    paren_count--;
 	  
 	  if (paren_count < 0) {
+		cout << __LINE__ << endl;
 	    cout << "Parse error: mismatched parentheses.\n";
 	    //  exit(1);
 	  }
@@ -821,7 +822,8 @@ string convert_infix_to_postfix(string infix) {
 	    paren_count--;
 	  
 	  if (paren_count < 0) {
-	    cout << "Parse error: mismatched parentheses.\n";
+	    cout << __LINE__ << endl;
+		cout << "Parse error: mismatched parentheses.\n";
 	    //exit(1);
 	  }
 
