@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 template <typename T>
 class array_2d
@@ -22,7 +23,14 @@ class array_2d
 		
 		
 		T& operator[](unsigned int index){return data[index];}
-		T& operator()(unsigned int i, unsigned int j){return data[i + j * width];}
+		T& operator()(unsigned int i, unsigned int j){
+			if(i + j * width > size)
+			{
+				std::cout << i << ", " << j << ", " << data[0] << std::endl;
+			}
+			
+			return data[i + j * width];
+		}
 		
 		const T& operator[](unsigned int index) const {return data[index];}
 		const T& operator()(unsigned int i, unsigned int j) const {return data[i + j * width];}

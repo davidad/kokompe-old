@@ -36,7 +36,7 @@ vector3 vvolume::compute_normal(vector3* v)
 	vector3 b = v[1];
 	vector3 c = v[2];
 	
-	vector3 raw_normal = (c - a) ^ (b - a);
+	vector3 raw_normal = (b - a) ^ (c - a);
 	
 	return raw_normal.unit();
 }
@@ -54,7 +54,15 @@ vector3 vvolume::compute_slope(vector3 normal, vector3 v0)
 	//now to get the z axis for a given x,y we will use:
 	// z = -(ax + by + d) / c
 	// z = (-a / c) * x + (-b / c) * y + (-d / c)
-	return -vector3(a / c, b / c, d / c);
+	
+	if(abs(c) > 1e-10)
+	{
+		return -vector3(a / c, b / c, d / c);
+	}
+	else
+	{
+		return vector3(0, 0, v0.z());
+	}
 }
 
 /*
@@ -64,7 +72,7 @@ scalar vvolume::get_z(vector2 p, vector3 slope)
 }
 */
 
-vector3 vvolume::get_color(vector3 normal, vector3 position, vector3 base_color)
+vector3 vvolume::get_color(vector3 base_color, vector3 position, vector3 normal)
 {
 	//return vector3(0,0,position[2] / 750);
 	
@@ -103,9 +111,88 @@ struct compare_y
 	}
 };
 
-vector3* current_v;
 
 void vvolume::fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vector3 normal)
+{
+	vector3 final_color = get_color(tri_color, v[0], normal);
+	
+	vector3 sorted_v[3];
+	sorted_v[0] = v[0];
+	sorted_v[1] = v[1];
+	sorted_v[2] = v[2];
+
+	std::sort(sorted_v, sorted_v + 3, compare_y()); //it feels silly to do this for three elements
+
+	vector3& a(sorted_v[0]);
+	vector3& b(sorted_v[1]);
+	vector3& c(sorted_v[2]);
+
+	double min_x = min(a.x(), b.x(), c.x());
+	double max_x = max(a.x(), b.x(), c.x());
+	
+	double dx1, dx2, dx3;
+	if (b.y()-a.y() > 0) dx1=(b.x()-a.x())/(b.y()-a.y()); else dx1=0;
+	if (c.y()-a.y() > 0) dx2=(c.x()-a.x())/(c.y()-a.y()); else dx2=0;
+	if (c.y()-b.y() > 0) dx3=(c.x()-b.x())/(c.y()-b.y()); else dx3=0;
+		
+	double y_start = a.y();
+	double y_mid = b.y();
+	double y_stop = c.y() + 1.0;
+		
+	for(double y = y_start; y <= y_mid; y += 1)
+	{
+		double dy = y - a.y();
+		double x1 = a.x() + dy * dx1;
+		double x2 = a.x() + dy * dx2;
+		horz_line(x1, x2, y, min_x, max_x, final_color, slope);
+	}
+	
+	for(double y = y_mid; y <= y_stop; y += 1)
+	{
+		double dy = y - a.y();
+		double x1 = b.x() + (y - b.y()) * dx3;
+		double x2 = a.x() + dy * dx2;
+		horz_line(x1, x2, y, min_x, max_x, final_color, slope);
+	}
+	
+	
+}
+
+void vvolume::horz_line(double x1, double x2, double y, double min_x, double max_x, vector3 line_color, vector3 slope)
+{
+	if(y < 0 || y >= height)
+	{
+		return;
+	}
+	
+	double x_start = min(x1, x2);
+	double x_end = max(x1, x2);
+	double z_start = x_start * slope[0] + y * slope[1] + slope[2];
+	double dzdx = slope[0];
+		
+	if(x_start < min_x) return; // x_start = min_x;
+	if(x_end > max_x) return; // x_end = max_x;
+		
+	int int_x_start = int(x_start);
+	int int_x_end = int(x_end + 1);
+	
+	for(int x = int_x_start; x <= int_x_end; x++)
+	{
+		double dx = double(x + .5) - x_start;
+		double z = z_start + dx * dzdx;
+		if(x >= 0 && x < width)
+		{
+			if(z_buffer(x,y) > z)
+			{
+				colors(x, y) = line_color;
+				z_buffer(x, y) = z;
+			}
+		}
+	}
+}
+		
+/*
+void broken_fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vector3 normal)
 {
 	vector3 sorted_v[3];
 	sorted_v[0] = v[0];
@@ -148,29 +235,30 @@ void vvolume::fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vec
 		y = 0;
 	}
 	
-	double mid_y = min(b.y(), height);
-	double max_y = min(c.y(), height);
+	double mid_y = min(b.y(), height - 1);
+	double max_y = min(c.y(), height - 1);
 	double min_x = min(a.x(), b.x(), c.x());
 	double max_x = max(a.x(), b.x(), c.x());
-	double dy_mid = mid_y - a.y();
-	double dy_stop = max_y - a.y();
+	double dy_mid = min(height - 1, mid_y - a.y());
+	double dy_stop = min(height - 1, max_y - a.y());
 	
 	
-	double x1, x2;
+	
+	int x1, x2;
 	
 	//std::cout << "Mid_y: " << mid_y << std::endl;
 	
 	for(dy = 0; dy < dy_mid; dy += 1)
 	{
-		x1 = a.x() + dy * dx1;
-		x2 = a.x() + dy * dx2;
-		double start_x = min(x1, x2);
-		double stop_x = max(x1, x2);
+		x1 = int(a.x() + dy * dx1);
+		x2 = int(a.x() + dy * dx2);
+		int start_x = min(x1, x2);
+		int stop_x = max(x1, x2);
 		
-		if(start_x < min_x) start_x = min_x;
-		if(stop_x > max_x) stop_x = max_x;
+		//if(start_x < min_x) start_x = min_x;
+		//if(stop_x > max_x) stop_x = max_x;
 		//horz_line(start_x, stop_x, a.y() + dy, tri_color, slope, normal);
-		horz_line(int(start_x - .5), int(stop_x + .5), int(a.y() + dy + .5), tri_color, slope, normal);
+		horz_line(start_x, stop_x, int(a.y() + dy + .5), tri_color, slope, normal);
 		//std::cout << "Start/Stop x: " << start_x << " / " << stop_x << std::endl;
 	}
 	
@@ -181,9 +269,10 @@ void vvolume::fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vec
 		double start_x = min(x1, x2);
 		double stop_x = max(x1, x2);
 		
-		if(start_x < min_x) start_x = min_x;
-		if(stop_x > max_x) stop_x = max_x;
-		horz_line(int(start_x - .5), int(stop_x + .5), int(a.y() + dy + .5), tri_color, slope, normal);
+		//if(start_x < min_x) start_x = min_x;
+		//if(stop_x > max_x) stop_x = max_x;
+		horz_line(start_x, stop_x, int(a.y() + dy + .5), tri_color, slope, normal);
+		
 		
 	}
 	
@@ -236,21 +325,22 @@ void vvolume::fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vec
 			end_x+=dx2;
 		}
 	}
-	*/
+	
 
 }
-
-void vvolume::horz_line(double start_x, double end_x, double y, vector3 line_color, vector3 slope, vector3 normal)
+*/
+/*
+void horz_line_old(int start_x, int end_x, int y, vector3 line_color, vector3 slope, vector3 normal)
 {
-	if(y < 0 || y > colors.height) return;
+	if(y < 0 || y >= colors.height) return;
 	if(start_x > colors.width) return;
 	if(end_x < 0) return;
 	
-	int safe_start_x = start_x;
-	int safe_end_x = end_x;
+	int safe_start_x = start_x - 1;
+	int safe_end_x = end_x + 1;
 	
 	if(safe_start_x < 0) safe_start_x = 0;
-	if(safe_end_x > colors.width) safe_end_x = colors.width - 1;
+	if(safe_end_x >= colors.width) safe_end_x = colors.width - 1;
 				
 	double max_z = max(current_v[0][2], current_v[1][2], current_v[2][2]);
 	double min_z = min(current_v[0][2], current_v[1][2], current_v[2][2]);
@@ -273,12 +363,13 @@ void vvolume::horz_line(double start_x, double end_x, double y, vector3 line_col
 		
 		if(z_buffer(x,y) > z)
 		{
-			colors(x, y) = get_color(normal, vector3(double(x),double(y),z), line_color);
+			colors(x, y) = get_color(line_color, vector3(double(x),double(y),z), normal);
 			z_buffer(x, y) = z;
 		}
 	}
 }
-		
+	*/
+	
 
 vvolume::vvolume(unsigned int new_width, unsigned int new_height, 
 	matrix4 new_projection_matrix, vector3 new_ambient_light_color,
@@ -292,7 +383,7 @@ vvolume::vvolume(unsigned int new_width, unsigned int new_height,
 	colors(width, height),
 	z_buffer(width, height)
 {
-	colors = vector3(1.0,0.0,0.0) * 1;
+	colors = vector3(70,130,180) / 255.0;
 	z_buffer = width * height;
 }
 
@@ -316,22 +407,23 @@ void vvolume::draw_triangle(vector3* vertices, vector3 normal, vector3 tri_color
 	transformed_vertices[1] = projection_matrix * vertices[1];
 	transformed_vertices[2] = projection_matrix * vertices[2];
 	
-	
+	vector3 transformed_normal = (projection_matrix * normal) - projection_matrix.get_translation();
 	//vector3 computed_normal = compute_normal(transformed_vertices);
 	/*
-	if((computed_normal - normal).length() > .01)
+	if((computed_normal - transformed_normal).length() > .01)
 	{
-		//std::cout << "computed: " << computed_normal <<  std::endl;
-		//std::cout << "given: " << normal <<  std::endl;
+		std::cout << "computed: " << computed_normal <<  std::endl;
+		std::cout << "given: " << transformed_normal <<  std::endl;
 	}
 	*/
-	vector3 slope = compute_slope(normal, transformed_vertices[0]);
+	
+	vector3 slope = compute_slope(transformed_normal, transformed_vertices[0]);
 	
 	//std::cout << "Normal: " << normal << std::endl;
 	//std::cout << "Slope: " << slope << std::endl;
 	
 	
-	fill_2d_triangle(transformed_vertices, tri_color, slope, normal);	
+	fill_2d_triangle(transformed_vertices, tri_color, slope, transformed_normal);	
 	
 }
 

@@ -19,11 +19,11 @@ class vvolume
 	
 		vector3 compute_normal(vector3* v);
 		vector3 compute_slope(vector3 normal, vector3 v0);
-		vector3 get_color(vector3 normal, vector3 position, vector3 base_color);
+		vector3 get_color(vector3 base_color, vector3 position, vector3 normal);
 		void fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vector3 normal);
 		void vert_line(int x, double y1, double y2, vector3 line_color, vector3 slope, vector3 normal);
-		void horz_line(double start_x, double end_x, double y, vector3 line_color, vector3 slope, vector3 normal);
-
+		//void horz_line(int start_x, int end_x, int y, vector3 line_color, vector3 slope, vector3 normal);
+		void horz_line(double x1, double x2, double y, double min_x, double max_x, vector3 line_color, vector3 slope);
 	public:
 		vvolume::vvolume(unsigned int new_width, unsigned int new_height, 
 			matrix4 new_projection_matrix, vector3 new_ambient_light_color,

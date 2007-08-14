@@ -11,7 +11,7 @@ void load_stl(const char* filename)
 	unsigned int percent_loaded = 0;
 	unsigned int percent_displayed = 0;
 	
-	unsigned int size = 500;
+	unsigned int size = 1000;
 	unsigned int new_width = size;
 	unsigned int new_height = size;
 	matrix4 new_projection_matrix = matrix4::identity();
@@ -19,9 +19,9 @@ void load_stl(const char* filename)
 //		quaternion::from_roll_pitch_yaw(vector3(0.0,3.14,-1.5)));
 	matrix4::set_to_transform(new_projection_matrix, vector3(size / 2.0, size / 2.0, size / 2.0), 
 		//quaternion(0,0,0,1));
-		quaternion::from_roll_pitch_yaw(vector3(0.0,2.5,-1.5)));
-	vector3 new_ambient_light_color = vector3(1,1,1) * .3;
-	vector3 new_light_direction = -vector3(1,1,1);
+		quaternion::from_roll_pitch_yaw(vector3(-0.5,2.5,-1.5)));
+	vector3 new_ambient_light_color = vector3(1,1,1) * .4;
+	vector3 new_light_direction = -vector3(0,1,0);
 	vector3 new_light_source_color = vector3(1,1,1) * 1;
 	
 
@@ -70,7 +70,7 @@ void load_stl(const char* filename)
 				{
 					v[i][j] = (&current_triangle.vertex0)[i][j];
 				}
-				v[i] = (v[i] - vector3(10,10,10)) * 200;
+				v[i] = (v[i] - vector3(10,10,10)) * 1100;
 			}
 			vector3 normal;
 			normal[0] = current_triangle.normal[0];
@@ -86,8 +86,8 @@ void load_stl(const char* filename)
 			}
 			
 			
-			view_a.draw_triangle(v, normal, vector3(0,1,0));
-			view_b.draw_triangle(v, vector3(0,1,0));
+			view_a.draw_triangle(v, normal, vector3(1,1,1) * .6);
+			view_b.draw_triangle(v, vector3(1,1,1) * .6);
 		}
 
 	}
