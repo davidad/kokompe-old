@@ -1,5 +1,7 @@
 #pragma once
 #include "vector2.h"
+#include <ostream>
+
 typedef _vector2<int> point;
 
 class color
@@ -29,7 +31,7 @@ class ppm_image
 	public:
 		ppm_image(int width, int height);
 		~ppm_image();
-		void write_to_disk(const char* filename, int scale = 1);
+		void write_to_stream(std::ostream& os, int scale = 1);
 		void set_pixel(const point& location, const color& c);
 		void set_pixel(const point& location, 
 			const unsigned char new_red,

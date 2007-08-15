@@ -69,7 +69,8 @@ module.include.type=
 module.include.files=\
 	ppm_image.h\
 	vvolume.h\
-	matrix4.h
+	matrix4.h\
+	array_2d.h
 
 module.source.name=.
 module.source.type=

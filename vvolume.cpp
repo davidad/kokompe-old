@@ -72,7 +72,7 @@ scalar vvolume::get_z(vector2 p, vector3 slope)
 }
 */
 
-vector3 vvolume::get_color(vector3 base_color, vector3 position, vector3 normal)
+vector3 vvolume::get_color(vector3 base_color, vector3 normal)
 {
 	//return vector3(0,0,position[2] / 750);
 	
@@ -89,17 +89,13 @@ vector3 vvolume::get_color(vector3 base_color, vector3 position, vector3 normal)
 		lighting_strength *= -1;
 	}
 	*/
-	
-	if(lighting_strength > 0)
-	{
-		final_color[0] += base_color[0] * lighting_strength * light_source_color[0];
-		final_color[1] += base_color[1] * lighting_strength * light_source_color[1];
-		final_color[2] += base_color[2] * lighting_strength * light_source_color[2];
-	}
-	return final_color;
-	
+	lighting_strength = (lighting_strength + 1) * 0.5;
+	final_color[0] += base_color[0] * lighting_strength * light_source_color[0];
+	final_color[1] += base_color[1] * lighting_strength * light_source_color[1];
+	final_color[2] += base_color[2] * lighting_strength * light_source_color[2];
 
-	
+
+	return final_color;
 	
 }
 
@@ -114,7 +110,7 @@ struct compare_y
 
 void vvolume::fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vector3 normal)
 {
-	vector3 final_color = get_color(tri_color, v[0], normal);
+	vector3 final_color = get_color(tri_color, normal);
 	
 	vector3 sorted_v[3];
 	sorted_v[0] = v[0];
@@ -137,7 +133,7 @@ void vvolume::fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vec
 		
 	double y_start = a.y();
 	double y_mid = b.y();
-	double y_stop = c.y() + 1.0;
+	double y_stop = c.y();
 		
 	for(double y = y_start; y <= y_mid; y += 1)
 	{
@@ -170,8 +166,8 @@ void vvolume::horz_line(double x1, double x2, double y, double min_x, double max
 	double z_start = x_start * slope[0] + y * slope[1] + slope[2];
 	double dzdx = slope[0];
 		
-	if(x_start < min_x) return; // x_start = min_x;
-	if(x_end > max_x) return; // x_end = max_x;
+	//if(x_start < min_x) x_start = min_x;
+	//if(x_end > max_x) x_end = max_x;
 		
 	int int_x_start = int(x_start);
 	int int_x_end = int(x_end + 1);
@@ -407,15 +403,19 @@ void vvolume::draw_triangle(vector3* vertices, vector3 normal, vector3 tri_color
 	transformed_vertices[1] = projection_matrix * vertices[1];
 	transformed_vertices[2] = projection_matrix * vertices[2];
 	
-	vector3 transformed_normal = (projection_matrix * normal) - projection_matrix.get_translation();
-	//vector3 computed_normal = compute_normal(transformed_vertices);
+	vector3 transformed_normal = ((projection_matrix * normal) - projection_matrix.get_translation()).unit();
+	vector3 computed_normal = compute_normal(transformed_vertices);
+	
 	/*
 	if((computed_normal - transformed_normal).length() > .01)
 	{
 		std::cout << "computed: " << computed_normal <<  std::endl;
 		std::cout << "given: " << transformed_normal <<  std::endl;
+		std::cout << "started with: " << normal <<  std::endl;
+	
 	}
 	*/
+	
 	
 	vector3 slope = compute_slope(transformed_normal, transformed_vertices[0]);
 	
@@ -427,7 +427,7 @@ void vvolume::draw_triangle(vector3* vertices, vector3 normal, vector3 tri_color
 	
 }
 
-void vvolume::write_to_disk(const char* filename)
+void vvolume::write_to_stream(std::ostream& os)
 {
 	ppm_image image(width, height);
 
@@ -437,6 +437,7 @@ void vvolume::write_to_disk(const char* filename)
 		{
 			point location = point(x, y);
 			vector3 raw_color = colors(x, y);
+			//use z_buffer(x, y) to adjust brightness by dist to screen
 			if(raw_color[0] < 0) raw_color[0] = 0;
 			if(raw_color[0] > 1) raw_color[0] = 1;
 			if(raw_color[1] < 0) raw_color[1] = 0;
@@ -454,5 +455,11 @@ void vvolume::write_to_disk(const char* filename)
 		}			
 	}
 	
-	image.write_to_disk(filename);
+	image.write_to_stream(os);
+}
+
+std::ostream& operator<<(std::ostream& os, vvolume& v)
+{
+	v.write_to_stream(os);
+	return os;
 }

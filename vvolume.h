@@ -19,7 +19,7 @@ class vvolume
 	
 		vector3 compute_normal(vector3* v);
 		vector3 compute_slope(vector3 normal, vector3 v0);
-		vector3 get_color(vector3 base_color, vector3 position, vector3 normal);
+		vector3 get_color(vector3 base_color, vector3 normal);
 		void fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vector3 normal);
 		void vert_line(int x, double y1, double y2, vector3 line_color, vector3 slope, vector3 normal);
 		//void horz_line(int start_x, int end_x, int y, vector3 line_color, vector3 slope, vector3 normal);
@@ -30,5 +30,7 @@ class vvolume
 			vector3 new_light_direction, vector3 new_light_source_color);
 		void vvolume::draw_triangle(vector3* verticies, vector3 tri_color);
 		void vvolume::draw_triangle(vector3* verticies, vector3 normal, vector3 tri_color);
-		void write_to_disk(const char* filename);
+		void write_to_stream(std::ostream& os);
 };
+
+std::ostream& operator<<(std::ostream& os, vvolume& v);
