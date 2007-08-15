@@ -94,7 +94,9 @@ module.source.files=\
 	trimesh.cpp\
 	vector.cpp\
 	expand.cpp\
-	tool_path.cpp
+	tool_path.cpp\
+	xmlrpc_client.cpp\
+	xmlrpc_server.cpp
 
 module.pixmap.name=.
 module.pixmap.type=
