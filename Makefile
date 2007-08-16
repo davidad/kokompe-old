@@ -15,11 +15,14 @@ xmlrpc_server:= xmlrpc_server
 xmlrpc_client_obj:=xmlrpc_client.o
 xmlrpc_client:=xmlrpc_client
 
+infix_to_postfix_obj:=infix_to_postfix.o expression.o interval.o space_interval.o
+infix_to_postfix:= infix_to_postfix
+
 image := image
 
 compile: all
 
-all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj)
+all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix_obj)
 
 $(geomeval): $(geomeval_obj)
 	g++ -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
@@ -29,6 +32,9 @@ $(xmlrpc_server): $(xmlrpc_server_obj)
 
 $(xmlrpc_client): $(xmlrpc_client_obj)
 	g++ -o $@ $(xmlrpc_client_obj) $(LDFLAGS) $(LIBS)
+
+$(infix_to_postfix): $(infix_to_postfix_obj)
+	g++ -o $@ $(infix_to_postfix_obj) $(LDFLAGS) $(LIBS)
 
 %.o: %.c
 	gcc -c -o $@ $< $(CFLAGS)

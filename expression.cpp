@@ -58,12 +58,13 @@ static const unsigned int lowest_precedence = 24;
 // by precedence group
 //  --- 0 = left, 1 = right
 // starting at precedence group "0"
-static const int assoc[] = {0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0};  
+static const int assoc[] = {0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,1,1,0};  
 
 
 // Operator precedence and associativity from
 // http://www.ibiblio.org/g2swap/byteofpython/read/operator-precedence.html
-
+//
+// also, unary operators are assumed to be prefix operators in the infix string and so MUST be right-associative
 
 // Varible list of function parsing.
 // There are only three variables, X, Y, and Z
@@ -217,22 +218,34 @@ expression_t::expression_t(string postfix) {
     // NUMBERS 
     if (done==0) {
       //cout << "number\n";
-      x = (float)atof(token.c_str());
-      //cout << "number is " << x << "\n";
-      if (errno) {
-	cout << "Error parsing postfix expression.";
-	exit(189);
-      }
+		// Parse Numeric Constant
+		// Could be True, False, or something recognized by atof
+		if ((token.compare("False") == 0) || (token.compare("false") == 0) || (token.compare("FALSE") == 0)) {
+		  y.set_boolean(0);
+		  errno = 0;
+		}
+		else if ((token.compare("True") == 0) || (token.compare("true") == 0) || (token.compare("TRUE") == 0)) {
+		  y.set_boolean(1);
+		  errno = 0;
+		}
+		else {			 
+		  x = (float)atof(token.c_str());
+		  y.set_real_number(x);  // construct a new interval equal to this number
+		  //cout << "number is " << x << "\n";
+		}
+        if (errno) {
+	        cout << "Error parsing postfix expression.";
+			exit(189);
+		}
       else {
 	// 1. create a leaf node, i.e. a node having no child
 	tmp = new expression_t(0);
 	// 2. copy the operand in data part       
-	y.set_real_number(x);  // construct a new interval equal to this number
 	tmp->data = y;
 	// 3. PUSH node's address on stack 
 	parse_stack.push(tmp);
-      }
-    }
+	  }
+	}
     // 4. If there is more input go to step 1      
   }
   
@@ -383,6 +396,8 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
   interval_t result;
   interval_t tmp;
   expression_t *subtree;
+
+
 
   /*  cout << "entering eval \n";
   //cout << "num_children: " << num_children << "\n";
@@ -656,31 +671,27 @@ string convert_infix_to_postfix(string infix) {
     if (last_says_unary_minus && (this_token.compare("-") == 0))  {
       theiterator = tokens.erase(theiterator);
       tokens.insert(theiterator, "m");
+	  --theiterator;
+	//  if (theiterator != tokens.begin())  // insert skips over a token?
+	//	  theiterator--;
       //cout << "found unary minus.\n";
     }
-      
-
-
-    last_says_unary_minus = 0;
-    if ((*theiterator).compare("(") == 0)
-      last_says_unary_minus = 1;
-    else {
-      
-      for (j=0; j < fcn_num; j++) {
-	if (fcn_name[j].compare(*theiterator) == 0) {
-	  last_says_unary_minus = 1;
-	  break;
+	else {
+		last_says_unary_minus = 0;
+		if ((*theiterator).compare("(") == 0)
+			last_says_unary_minus = 1;
+		else {
+			for (j=0; j < fcn_num; j++) {
+				if (fcn_name[j].compare(*theiterator) == 0) {
+					last_says_unary_minus = 1;
+					break;
+				}
+			}
+		}
 	}
-      }
-    }
-
-
-
   }
  
 
-
-  
 
   // Now enforce operator precedence and associativity 
   // This implementation uses the straightforward parentheses-insertion
@@ -697,18 +708,21 @@ string convert_infix_to_postfix(string infix) {
   list<string>::iterator paren_iterator;
   unsigned int precedence;
   int args;
-
+  int loopnotdone;
  
 
   for(precedence = highest_precedence; precedence <= lowest_precedence; precedence++) {
     //cout << "precedence:" << precedence << " with assoc " << assoc[precedence] << "\n";
   
-    
+    loopnotdone = 1;
+	if (assoc[precedence]) 
+		theiterator = --(tokens.end());
+	else
+		theiterator = tokens.begin();
 
-      for (assoc[precedence] ? theiterator = --(tokens.end()) : theiterator = tokens.begin();
-    	 assoc[precedence] ? theiterator != tokens.begin() : theiterator != tokens.end() ; 
-    	 assoc[precedence] ? theiterator-- : theiterator++) {
-      
+	while(loopnotdone) {
+
+
 
 	//for (theiterator = --(tokens.end()) ;
 	// theiterator != tokens.begin() ; 
@@ -740,8 +754,9 @@ string convert_infix_to_postfix(string infix) {
 	if (args == 1) {
 	  //cout << "recognized unary operator." << "\n";
 	  // For a unary operator, insert the parens directly before the operator
-	  theiterator = tokens.insert(theiterator, "(");
-	  theiterator++;
+	  theiterator = tokens.insert(theiterator, "(");  
+	  
+	  theiterator++; 
 	  // theiterator++;
 	  // print_tokens(tokens);
 	  
@@ -759,7 +774,6 @@ string convert_infix_to_postfix(string infix) {
 	    paren_count--;
 	  
 	  if (paren_count < 0) {
-		cout << __LINE__ << endl;
 	    cout << "Parse error: mismatched parentheses.\n";
 	    //  exit(1);
 	  }
@@ -767,11 +781,15 @@ string convert_infix_to_postfix(string infix) {
 	  if (paren_count == 0) {
 	    // and insert a left paren here
 	    tokens.insert(paren_iterator, "(");
+		//--paren_iterator; // TESTING..........
 	    //cout << "inserting (\n";
 	    //print_tokens(tokens);
 	    break;
 	  }
 	}
+
+	// Looks like this code binds the right arg
+   // (and is broken)
 
 	  if (paren_iterator == tokens.begin()) {
 	    // skip over a matched set of parens
@@ -788,6 +806,7 @@ string convert_infix_to_postfix(string infix) {
 	    if (paren_count == 0) {
 	      // and insert a left paren here
 	      tokens.insert(paren_iterator, "(");
+		  //--paren_iterator; /// TESTING...
 	      //cout << "insertingat start (\n";
 	      //print_tokens(tokens);
 	    }
@@ -822,14 +841,14 @@ string convert_infix_to_postfix(string infix) {
 	    paren_count--;
 	  
 	  if (paren_count < 0) {
-	    cout << __LINE__ << endl;
-		cout << "Parse error: mismatched parentheses.\n";
+	    cout << "Parse error: mismatched parentheses.\n";
 	    //exit(1);
 	  }
 
 	  if (paren_count == 0) {
 	    // and insert a right paren here
 	    tokens.insert(++paren_iterator, ")");
+		//--paren_iterator; /// TESTING..
 	    //cout << "inserting )\n";
 	    //print_tokens(tokens);	    
   break;
@@ -842,7 +861,24 @@ string convert_infix_to_postfix(string infix) {
       
       theiterator--;
       }
-    }
+
+	  // Loop end conditions
+	  if (assoc[precedence]) {
+	  
+		if (theiterator == tokens.begin())
+			loopnotdone = 0;
+		else {
+			theiterator--;
+		}
+	  }
+	  else {
+		  theiterator++;
+		  if (theiterator == tokens.end())
+			  loopnotdone = 0;
+
+	  }
+
+	}
   }
  
   //cout << "\n";
