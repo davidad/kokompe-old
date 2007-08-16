@@ -37,8 +37,8 @@ static interval_t (*fcn_evaluator[])(const interval_t&, const interval_t&) = {
   &(interval_t::bool_or),
 
   &(interval_t::power),
-  &(interval_t::less_than),           // hack  < = <=   !!!!!
-  &(interval_t::greater_than),       // hack  > = >=   !!!!!
+  &(interval_t::less_than_or_equals),           // hack  < = <=   !!!!!
+  &(interval_t::greater_than_or_equals),       // hack  > = >=   !!!!!
   &(interval_t::sin), 
   &(interval_t::cos),
   &(interval_t::sqrt),

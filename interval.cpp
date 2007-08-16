@@ -206,6 +206,19 @@ interval_t interval_t::greater_than(const interval_t &a, const interval_t &b) {
   return(less_than(b,a));
 }
 
+interval_t interval_t::greater_than_or_equals(const interval_t &a, const interval_t &b) {
+  interval_t null_interval;
+
+  return(bool_or(greater_than(a,b), equals(a,b)));
+}
+
+interval_t interval_t::less_than_or_equals(const interval_t &a, const interval_t &b) {
+  interval_t null_interval;
+  
+  return(bool_or(less_than(a,b), equals(a,b)));
+}
+
+
 // Equals: Real numbers to boolean
 
 interval_t interval_t::equals(const interval_t &a, const interval_t &b) {

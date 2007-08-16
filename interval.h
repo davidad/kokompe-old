@@ -49,6 +49,9 @@ private:
   static interval_t less_than(const interval_t &a,const interval_t &b);
   static interval_t greater_than(const interval_t &a,const interval_t &b);
   static interval_t equals(const interval_t &a,const interval_t &b); 
+  static interval_t less_than_or_equals(const interval_t &a,const interval_t &b);
+  static interval_t greater_than_or_equals(const interval_t &a,const interval_t &b);
+
   static interval_t bool_not(const interval_t &a,const interval_t &b);
   static interval_t bool_or(const interval_t &a, const interval_t &b);
   static interval_t bool_and(const interval_t &a, const interval_t &b);

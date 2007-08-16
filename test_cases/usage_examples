@@ -1,3 +1,7 @@
 ../infix_to_postfix < teapot.math > teapot.postfix
 
 ../math_string_to_stl -1 1 -1 1 -1 1 .03 < teapot.postfix > teapot.stl
+
+ ../math_string_slice_to_ppm -2 2 -2 2 0 0.05 < teapot.postfix > teapot.ppm
+
+ ../math_string_slice_to_ppm 1 2.3 1 2.3 -.005 0.005 < thinnerclient.postfix > thinner_client.ppm
