@@ -16,3 +16,7 @@ typedef std::list<segment > tool_path;
 tool_path compute_tool_path(const array_2d<char>& obj, double tool_radius, double max_error);
 
 std::ostream& operator<<(std::ostream& os, const tool_path& path);
+
+std::ostream& write_scaled_path(std::ostream& os, const tool_path& path, 
+				float xstart, float ystart, float xscale, float yscale);
+
