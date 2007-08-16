@@ -19,11 +19,13 @@ math_string_to_stl:= math_string_to_stl
 
 stl_to_ppm_obj:=stl_to_ppm.o vvolume.o ppm_image.o
 stl_to_ppm:= stl_to_ppm
+math_string_slice_to_ppm_obj:=math_string_slice_to_ppm.o octree.o expression.o interval.o space_interval.o  ppm_image.o
+math_string_slice_to_ppm:= math_string_slice_to_ppm
 
 
 compile: all
 
-all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)
+all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm) $(math_string_slice_to_ppm)
 
 $(geomeval): $(geomeval_obj)
 	g++ -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
@@ -42,6 +44,9 @@ $(math_string_to_stl): $(math_string_to_stl_obj)
 
 $(stl_to_ppm): $(stl_to_ppm_obj) quaternion.h
 	g++ -o $@ $(stl_to_ppm_obj) $(LDFLAGS) $(LIBS)
+
+$(math_string_slice_to_ppm): $(math_string_slice_to_ppm_obj)
+	g++ -o $@ $(math_string_slice_to_ppm_obj) $(LDFLAGS) $(LIBS)
 
 # debug build	
 %.o: %.c
