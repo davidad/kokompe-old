@@ -248,7 +248,7 @@ class _quaternion
 			q[3] = cos_r2 * cos_p2 * sin_y2 - sin_r2 * sin_p2 * cos_y2;
 			return q;
 #else
-            return from_angle_axis(rpy[0], _vector3<scalar>(0,0,1)) * from_angle_axis(rpy[1], _vector3<scalar>(0,1,0)) * from_angle_axis(rpy[2], _vector3<scalar>(0,0,1));
+            return from_angle_axis(rpy[0], _vector3<scalar>(0,0,1)) * from_angle_axis(rpy[1], _vector3<scalar>(1,0,0)) * from_angle_axis(rpy[2], _vector3<scalar>(0,1,0));
 #endif
 		}
 		_vector3<scalar> to_roll_pitch_yaw()
