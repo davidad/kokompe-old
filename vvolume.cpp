@@ -81,19 +81,23 @@ vector3 vvolume::get_color(vector3 base_color, vector3 normal)
 	final_color[1] = base_color[1] * ambient_light_color[1];
 	final_color[2] = base_color[2] * ambient_light_color[2];
 	
-	double lighting_strength = light_direction * normal;
-	
 	//flip normal if it doesn't face towards screen
 	/*if(normal * vector3(0,0,1) < 0)
 	{
 		lighting_strength *= -1;
 	}
 	*/
+	double lighting_strength = light_direction * normal;
 	lighting_strength = (lighting_strength + 1) * 0.5;
+#ifdef STANDARD_LIGHTING
 	final_color[0] += base_color[0] * lighting_strength * light_source_color[0];
 	final_color[1] += base_color[1] * lighting_strength * light_source_color[1];
 	final_color[2] += base_color[2] * lighting_strength * light_source_color[2];
-
+#else
+    final_color[0] += base_color[0] * 0.4 * (1 + (vector3(1,0,0)*normal));
+    final_color[1] += base_color[1] * 0.4 * (1 + (vector3(0,1,0)*normal));
+    final_color[2] += base_color[2] * 0.4 * (1 + (vector3(0,0,1)*normal));
+#endif
 
 	return final_color;
 	
