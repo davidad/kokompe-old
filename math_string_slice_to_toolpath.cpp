@@ -106,6 +106,10 @@ int main(int argc, char** argv) {
   
   float tool_radius_in_lattice_units = tool_radius * (((float)nx / xlen) + ((float)ny / ylen )) * 0.5f;
   
+  float xscale = xlen / ((float)nx);   // mapping from lattice units to real units
+  float yscale = ylen / ((float)ny);
+  float xstart = xmin + xscale*0.5f;   // lattice 0 is halfway into the first pixel
+  float ystart = ymin + yscale*0.5f;
 
   // Hard-limit the recursion depth 
   if(recursion_depth < 0)
@@ -168,7 +172,11 @@ int main(int argc, char** argv) {
 
   tool_path path = compute_tool_path(results, tool_radius_in_lattice_units, max_error_in_lattice_units);
   
-  cout << path << endl;
+  write_scaled_path(cout, path, xstart, ystart, xscale, yscale);
+  cout << endl;
+
+
+  //  cout << path << endl;
   cerr << "Tool path computed." << endl;
 
   return(0);  
