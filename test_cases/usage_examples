@@ -5,3 +5,6 @@
  ../math_string_slice_to_ppm -2 2 -2 2 0 0.05 < teapot.postfix > teapot.ppm
 
  ../math_string_slice_to_ppm 1 2.3 1 2.3 -.005 0.005 < thinnerclient.postfix > thinner_client.ppm
+
+../math_string_slice_to_toolpath 1 2.3 1 2.3 -.005 0.005 0.0075 < thinnerclient.postfix > thinner_client.toolpath
+

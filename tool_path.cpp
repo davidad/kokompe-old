@@ -183,7 +183,7 @@ tool_path compute_tool_path(const array_2d<char>& obj, double tool_radius, doubl
 {
 	if(tool_radius < 1.42)
 	{
-		std::cerr << "Warning: Tool radius must be greater or equal to 1.5, tool path will not be generated" << std::endl;
+		std::cerr << "Warning: Tool radius must be greater than 1.42, tool path will not be generated" << std::endl;
 		//throw; //if the tool is too small we can get weird topologies that will break things
 		return tool_path();
 	}
@@ -271,7 +271,7 @@ tool_path compute_tool_path(const array_2d<char>& obj, double tool_radius, doubl
 	
 	//std::cout << "Full path generated." << std::endl;
 	
-	display(cells, 0);
+	//display(cells, 0);   AK
 	
 			
 	return current_path;

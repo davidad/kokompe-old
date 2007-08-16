@@ -1,0 +1,115 @@
+opencad utils
+> >>
+> >>
+> >> There are three cad primatives that we currently work with:
+> >>
+> >> math strings
+> >>
+> >> stl files (binary format)
+> >>
+> >> generic toolpaths
+> >>
+> >>
+> >> -----------------------
+> >>
+> >> DAVID
+> >> stl_to_ppm(image):
+> >>          inputs:
+> >>                  a binary stl file from std in
+> >>          parameters:
+> >>                  center (x y z)
+> >>                  viewpoint (x y z)
+> >>                  scale?
+> >>                  int outimage width
+> >>                  int outimage height
+> >>          outputs:
+> >>                  a ppm image over std out of the object from the
+> >> specified angle
+> >>
+> >> ARA
+> >> infix_to_postfix(pull out code from geom eval):
+> >>          inputs:
+> >>                  a infix math string over std in
+> >>          outputs:
+> >>                  a postfix math string over std out
+> >>
+> >> DAVID
+> >> ppm_to_tool_path(pull out code from tool_path.cpp):
+> >>          inputs:
+> >>                  a ppm image from std in
+> >>          parameters:
+> >>                  cells per inch
+> >>                  intensity threshold
+> >>                  tool size
+> >>                  (for later maybe if it is wanted): max error (for now
+> >> default to root
+> >> 2 / 2)
+> >>          output:
+> >>                  sends a ascii toolpath to std out
+> >>
+> >> ARA
+> >> math_string_to_stl(pull out code from geom eval):
+> >>          inputs:
+> >>                  an postfix math string from std in
+> >>          parameters:
+> >>                  min/max x,y,z
+> >>                  smallest feature size
+> >>          output:
+> >>                  sends a binary stl file to std out
+> >>
+> >> ARA
+> >> math_string_slice_to_tool_path(combine geom_eval solver and tool_path.cpp):
+> >>
+> >>          inputs:
+> >>                  an postfix math string from std in
+> >>          parameters:
+> >>                  min/max x, y
+> >>                  z
+> >>                  smallest feature size
+  		      tool radius
+> >>          output:
+> >>                  sends an ascii toolpath ({[,],[,]},{[,],[,]} format)
+
+> >> ARA
+> >> math_string_slice_to_ppm:
+> >>
+> >>          inputs:
+> >>                  an postfix math string from std in
+> >>          parameters:
+> >>                  min/max x, y
+> >>                  z
+> >>                  smallest feature size
+  		      
+> >>          output:
+> >>                  binary PPM file to stdout
+
+> >>
+> >> DAVID
+> >> tool_path_to_epilog(Sma'ri):
+> >>          inputs:
+> >>                  a generic tool_path (from std in)
+> >>          parameters:
+> >>                  ???
+> >>          outputs:
+> >>                  a epilog printer file
+> >>
+> >>
+> >> DAVID
+> >> Web GUI + CGI backend
+> >>
+> >> ARA
+> >> powerpoint slides about evaluator, grassfire
+> >> documentation on using these programs
+> >>
+> >> tool_path_to_...:
+> >>
+> >>
+> >> ------------------------
+> >> Potential utilites:
+> >>
+> >> rescale: works on stl or toolpath
+> >> translate: as rescale
+> >> rotate: not yours
+> >>
+> >>
+> >>

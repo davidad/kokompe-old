@@ -25,12 +25,15 @@ math_string_slice_to_ppm_obj:=math_string_slice_to_ppm.o octree.o expression.o i
 math_string_slice_to_ppm:= math_string_slice_to_ppm
 
 
+math_string_slice_to_toolpath_obj:=math_string_slice_to_toolpath.o octree.o expression.o interval.o space_interval.o  tool_path.o expand.o
+math_string_slice_to_toolpath:= math_string_slice_to_toolpath
+
 
 image := image
 
 compile: all
 
-all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(math_string_slice_to_ppm)
+all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath)
 
 $(geomeval): $(geomeval_obj)
 	g++ -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
@@ -50,7 +53,8 @@ $(math_string_to_stl): $(math_string_to_stl_obj)
 $(math_string_slice_to_ppm): $(math_string_slice_to_ppm_obj)
 	g++ -o $@ $(math_string_slice_to_ppm_obj) $(LDFLAGS) $(LIBS)
 
-
+$(math_string_slice_to_toolpath): $(math_string_slice_to_toolpath_obj)
+	g++ -o $@ $(math_string_slice_to_toolpath_obj) $(LDFLAGS) $(LIBS)
 
 %.o: %.c
 	gcc -c -o $@ $< $(CFLAGS)
