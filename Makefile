@@ -40,7 +40,7 @@ $(infix_to_postfix): $(infix_to_postfix_obj)
 $(math_string_to_stl): $(math_string_to_stl_obj)
 	g++ -o $@ $(math_string_to_stl_obj) $(LDFLAGS) $(LIBS)
 
-$(stl_to_ppm): $(stl_to_ppm_obj)
+$(stl_to_ppm): $(stl_to_ppm_obj) quaternion.h
 	g++ -o $@ $(stl_to_ppm_obj) $(LDFLAGS) $(LIBS)
 
 # debug build	
