@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     struct arg_dbl* org_y = arg_dbl0("y", "origin-y", "<coord>", "origin y");
     struct arg_dbl* org_z = arg_dbl0("z", "origin-z", "<coord>", "origin z");
     struct arg_int* width = arg_int0("w", "width", "<pixels>", "output image width");
-    struct arg_int* height = arg_int0("w", "height", "<pixels>", "output image height");
+    struct arg_int* height = arg_int0("h", "height", "<pixels>", "output image height");
     struct arg_dbl* scale = arg_dbl0("s", "scale", "<scalar>", "scale the object relative to the image frame");
     struct arg_end* end = arg_end(20);
     void *argtable[] = {roll,pitch,yaw,org_x,org_y,org_z,width,height,scale,end};
