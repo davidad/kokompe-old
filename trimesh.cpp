@@ -787,7 +787,7 @@ void trimesh_t::recalculate_normals() {
 		// Compute normal from cross product of edge vectors
 		(**triangle_iterator).normal = normalize(cross(sub(new_verticies[1],new_verticies[0]), sub(new_verticies[2], new_verticies[0])));
 	}
-	cout << "Recalculate normals found " << j << " sliver triangles.\n";
+	//cout << "Recalculate normals found " << j << " sliver triangles.\n";
 }
 
 
@@ -813,6 +813,7 @@ void trimesh_t::mark_triangles_needing_division() {
 		
 					outer_triangle = *outer_triangle_iterator;
 					for (edge = 0; edge < 3; edge++) {
+					  if (outer_triangle->neighbors[edge] != NULL) {
 						inner_triangle = outer_triangle->neighbors[edge];
 
 						// If both triangles are already marked, no need to check again
@@ -846,6 +847,7 @@ void trimesh_t::mark_triangles_needing_division() {
 
 								}
 							}
+					  }
 					}
 			}
 	}
@@ -1602,35 +1604,32 @@ void trimesh_t::fill_stl(char **buffer, int *buffer_size) {
   // Automated Fabrication, by Marshall Burns, Ch.6
   // and at http://www.ennex.com/~fabbers/StL.asp
   
-  cout << "1\n";
-
   // Compute size of stl file in bytes
-  *buffer_size = 80 + num_triangles*(sizeof(stl_facet_t)+sizeof(unsigned short));
+  *buffer_size = 80 + 4 + num_triangles*(sizeof(stl_facet_t)+sizeof(unsigned short));
 
-  cout << "2\n";
-
+  
   // Allocate memory buffer
   *buffer = new char[*buffer_size];
-    cout << "3\n";
+  
   ptr = *buffer;
-  cout << "4\n";
+  
 
   // Write header
   char header[80] = "Created by Fab Server 0.1";
-  cout << "5\n";
+  
   memcpy(ptr, header, 80);
-  cout << "6\n";
+  
   ptr += 80;
-  cout << "7\n";
+  
 
   // Write number of triangles to STL data
   memcpy(ptr, (char*)&num_facets, 4);
-  cout << "8\n";  
-ptr += 4;
-   cout << "9\n";
+  
+  ptr += 4;
+  
   // Write triangles to STL data
   for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
-    cout << "9.1\n";
+  
     stl_facet.normal = (*triangle_iterator)->normal;
     stl_facet.vertex_1 = *((*triangle_iterator)->verticies[0]);
     stl_facet.vertex_2 = *((*triangle_iterator)->verticies[1]);
@@ -1648,17 +1647,17 @@ ptr += 4;
     stl_facet.vertex_3.y += 10.0f;
     stl_facet.vertex_3.z += 10.0f;
         
-    cout << "9.2\n";
+  
     memcpy(ptr, (char*)&stl_facet, sizeof(stl_facet_t));
-    cout << "9.2\n";
+  
     ptr += sizeof(stl_facet_t);
-    cout << "9.3\n";
+  
     memcpy(ptr, (char*)&attr_byte_count, sizeof(unsigned short));
-    cout << "9.4\n";  
+  
     ptr += sizeof(unsigned short);
-    cout << "9.5\n";
+  
   }
-  cout << "10\n";  
+  
 
 }
 

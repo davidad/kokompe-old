@@ -1,0 +1,3 @@
+../infix_to_postfix < teapot.math > teapot.postfix
+
+../math_string_to_stl -1 1 -1 1 -1 1 .03 < teapot.postfix > teapot.stl
