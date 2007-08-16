@@ -58,7 +58,8 @@ tidy:
 	rm -f $(geomeval_obj) $(xmlrpc_server_obj) $(xmlrpc_client_obj) $(image_obj)
 
 ppm_run: stl_to_ppm
-	time ./stl_to_ppm
+	./stl_to_ppm < in.stl > out.ppm
+	display out.ppm
 
 geom_run: geomeval
 	./geomeval
