@@ -87,8 +87,8 @@ int main(int argc, char** argv)
         
         matrix4 move_to_origin = matrix4(-vector3(org_x->dval[0],org_y->dval[0],org_z->dval[0]));
         matrix4 move_to_center = matrix4(center);
-        double pi = 3.1415926535;
-        matrix4 rotate = matrix4(quaternion::from_roll_pitch_yaw(vector3(roll->dval[0]*pi, pitch->dval[0]*pi, yaw->dval[0]*pi)));
+        double deg2rad = 3.1415926535/180.0;
+        matrix4 rotate = matrix4(quaternion::from_roll_pitch_yaw(vector3(roll->dval[0]*deg2rad, pitch->dval[0]*deg2rad, yaw->dval[0]*deg2rad)));
         matrix4 scale_matrix = matrix4::identity();
         scale_matrix *= scale->dval[0];
         scale_matrix(3,3) = 1; //fix homogeneous component
