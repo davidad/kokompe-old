@@ -72,10 +72,10 @@ $(math_string_slice_to_toolpath): $(math_string_slice_to_toolpath_obj)
 %.cpp : %.h
 
 clean: tidy
-	rm -f $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image)
+	rm -f $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm) $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath)
 
 tidy:
-	rm -f $(geomeval_obj) $(xmlrpc_server_obj) $(xmlrpc_client_obj) $(image_obj)
+	rm -f $(geomeval_obj) $(xmlrpc_server_obj) $(xmlrpc_client_obj) $(infix_to_postfix_obj) $(math_string_to_stl_obj) $(stl_to_ppm_obj) $(math_string_slice_to_ppm_obj) $(math_string_slice_to_toolpath_obj)
 
 ppm_run: stl_to_ppm
 	./stl_to_ppm < in.stl > out.ppm
