@@ -5,10 +5,6 @@ LDFLAGS := -lxmlrpc -lxmlrpc_server -lxmlrpc_client -lxmlrpc_util -lxmlrpc_xmlpa
 geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o
 geomeval:=geomeval
 
-image_obj := main.o
-image_obj += vvolume.o
-image_obj += ppm_image.o
-
 xmlrpc_server_obj:=xmlrpc_server.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
 xmlrpc_server:= xmlrpc_server
 
@@ -21,13 +17,13 @@ infix_to_postfix:= infix_to_postfix
 math_string_to_stl_obj:=math_string_to_stl.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
 math_string_to_stl:= math_string_to_stl
 
+stl_to_ppm_obj:=stl_to_ppm.o vvolume.o ppm_image.o
+stl_to_ppm:= stl_to_ppm
 
-
-image := image
 
 compile: all
 
-all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix) $(math_string_to_stl)
+all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)
 
 $(geomeval): $(geomeval_obj)
 	g++ -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
@@ -44,12 +40,12 @@ $(infix_to_postfix): $(infix_to_postfix_obj)
 $(math_string_to_stl): $(math_string_to_stl_obj)
 	g++ -o $@ $(math_string_to_stl_obj) $(LDFLAGS) $(LIBS)
 
-%.o: %.c
-	gcc -c -o $@ $< $(CFLAGS)
+$(stl_to_ppm): $(stl_to_ppm_obj)
+	g++ -o $@ $(stl_to_ppm_obj) $(LDFLAGS) $(LIBS)
 
 # debug build	
-$(image): $(image_obj)
-	$(CC) -g -o $@ $(image_obj) $(LIBS) -pg
+%.o: %.c
+	$(CC) -g -c -o $@ $< $(CFLAGS) -pg
 %.o: %.cpp
 	$(CC) -g -c -o $@ $< $(CFLAGS) -pg
 
@@ -61,8 +57,8 @@ clean: tidy
 tidy:
 	rm -f $(geomeval_obj) $(xmlrpc_server_obj) $(xmlrpc_client_obj) $(image_obj)
 
-image_run:	all
-	time ./image
+ppm_run: stl_to_ppm
+	time ./stl_to_ppm
 
-geom_run: all
+geom_run: geomeval
 	./geomeval
