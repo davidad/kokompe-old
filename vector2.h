@@ -200,6 +200,8 @@ _vector2<scalar>& normalize(_vector2<scalar>& v)
 	return v;
 }
 
+
+
 /*
 #ifdef _GLIBCXX_OSTREAM
 

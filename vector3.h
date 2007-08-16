@@ -8,10 +8,6 @@ class _vector3
 		scalar vals[3];
 		
 	public:
-		scalar& x() {return vals[0];}
-		scalar& y() {return vals[1];}
-		scalar& z() {return vals[2];}
-
 		const scalar& x() const {return vals[0];}
 		const scalar& y() const {return vals[1];}
 		const scalar& z() const {return vals[2];}
@@ -211,3 +207,16 @@ _vector3<scalar>& normalize(_vector3<scalar>& v)
 	return v;
 }
 
+
+/*
+#ifdef _GLIBCXX_OSTREAM
+
+template <typename scalar>
+std::ostream& operator<<
+(std::ostream& os, const _vector3<scalar>& vec)
+{
+    return os<< "<" << vec.x() << ", " << vec.y() << ", " << vec.z() << ">";
+}
+
+#endif
+*/

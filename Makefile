@@ -1,9 +1,13 @@
 CC := g++
 CFLAGS := -Wall -O3 -I..
-LDFLAGS := -lxmlrpc -lxmlrpc_server -lxmlrpc_client -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_server_abyss -lxmlrpc_abyss  -lpthread -lwwwhttp -lwwwxml
+LDFLAGS := -lxmlrpc -lxmlrpc_server -lxmlrpc_client -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_server_abyss -lxmlrpc_abyss -lpthread -lwwwhttp -lwwwxml
 
 geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o
 geomeval:=geomeval
+
+image_obj := main.o
+image_obj += vvolume.o
+image_obj += ppm_image.o
 
 xmlrpc_server_obj:=xmlrpc_server.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
 xmlrpc_server:= xmlrpc_server
@@ -11,7 +15,11 @@ xmlrpc_server:= xmlrpc_server
 xmlrpc_client_obj:=xmlrpc_client.o
 xmlrpc_client:=xmlrpc_client
 
-all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client)
+image := image
+
+compile: all
+
+all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj)
 
 $(geomeval): $(geomeval_obj)
 	g++ -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
@@ -25,14 +33,22 @@ $(xmlrpc_client): $(xmlrpc_client_obj)
 %.o: %.c
 	gcc -c -o $@ $< $(CFLAGS)
 
+# debug build	
+$(image): $(image_obj)
+	$(CC) -g -o $@ $(image_obj) $(LIBS) -pg
 %.o: %.cpp
-	g++ -c -o $@ $< $(CFLAGS)
+	$(CC) -g -c -o $@ $< $(CFLAGS) -pg
+
+%.cpp : %.h
 
 clean: tidy
-	rm -f $(geomeval) $(xmlrpc_server) $(xmlrpc_client)
+	rm -f $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image)
 
 tidy:
-	rm -f $(geomeval_obj) $(xmlrpc_server_obj) $(xmlrpc_client_obj)
+	rm -f $(geomeval_obj) $(xmlrpc_server_obj) $(xmlrpc_client_obj) $(image_obj)
 
-run: all
+image_run:	all
+	time ./image
+
+geom_run: all
 	./geomeval
