@@ -12,6 +12,7 @@ class vvolume
 		const vector3 light_direction;
 		const vector3 light_source_color;
 		const vector3 ambient_light_color;
+        const bool xyz_lighting;
 		const unsigned int width;
 		const unsigned int height;
 		array_2d<vector3> colors;
@@ -27,7 +28,7 @@ class vvolume
 	public:
 		vvolume::vvolume(unsigned int new_width, unsigned int new_height, 
 			matrix4 new_projection_matrix, vector3 new_ambient_light_color,
-			vector3 new_light_direction, vector3 new_light_source_color);
+			vector3 new_light_direction, vector3 new_light_source_color, bool xyz_lighting);
 		void vvolume::draw_triangle(vector3* verticies, vector3 tri_color);
 		void vvolume::draw_triangle(vector3* verticies, vector3 normal, vector3 tri_color);
 		void write_to_stream(std::ostream& os);

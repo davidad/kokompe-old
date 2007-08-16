@@ -88,16 +88,16 @@ vector3 vvolume::get_color(vector3 base_color, vector3 normal)
 	}
 	*/
 	double lighting_strength = light_direction * normal;
-	lighting_strength = (lighting_strength + 1) * 0.5;
-#ifdef STANDARD_LIGHTING
-	final_color[0] += base_color[0] * lighting_strength * light_source_color[0];
-	final_color[1] += base_color[1] * lighting_strength * light_source_color[1];
-	final_color[2] += base_color[2] * lighting_strength * light_source_color[2];
-#else
-    final_color[0] += base_color[0] * 0.4 * (1 + (vector3(1,0,0)*normal));
-    final_color[1] += base_color[1] * 0.4 * (1 + (vector3(0,1,0)*normal));
-    final_color[2] += base_color[2] * 0.4 * (1 + (vector3(0,0,1)*normal));
-#endif
+	lighting_strength = (lighting_strength + 1) * 0.25;
+    if(!xyz_lighting) {
+        final_color[0] += base_color[0] * lighting_strength * light_source_color[0];
+        final_color[1] += base_color[1] * lighting_strength * light_source_color[1];
+        final_color[2] += base_color[2] * lighting_strength * light_source_color[2];
+    } else {
+        final_color[0] += base_color[0] * 0.4 * (1 + (vector3(1,0,0)*normal));
+        final_color[1] += base_color[1] * 0.4 * (1 + (vector3(0,1,0)*normal));
+        final_color[2] += base_color[2] * 0.4 * (1 + (vector3(0,0,1)*normal));
+    }
 
 	return final_color;
 	
@@ -373,11 +373,12 @@ void horz_line_old(int start_x, int end_x, int y, vector3 line_color, vector3 sl
 
 vvolume::vvolume(unsigned int new_width, unsigned int new_height, 
 	matrix4 new_projection_matrix, vector3 new_ambient_light_color,
-	vector3 new_light_direction, vector3 new_light_source_color)
+	vector3 new_light_direction, vector3 new_light_source_color, bool crazy_lighting)
 	: projection_matrix(new_projection_matrix),
 	light_direction((projection_matrix * new_light_direction).unit()),
 	light_source_color(new_light_source_color),
 	ambient_light_color(new_ambient_light_color),
+    xyz_lighting(crazy_lighting),
 	width(new_width),
 	height(new_height),
 	colors(width, height),

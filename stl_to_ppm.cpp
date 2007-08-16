@@ -13,6 +13,7 @@ vector3 new_ambient_light_color = vector3(1,1,1) * .2;
 vector3 new_light_direction = -vector3(1,1,0);
 vector3 new_light_source_color = vector3(1,1,1) * 2;
 matrix4 new_projection_matrix;
+bool xyz_lighting = true;
 
 unsigned int size = 1000;
 unsigned int new_width = size;
@@ -62,11 +63,12 @@ int main(int argc, char** argv)
     struct arg_int* width = arg_int0("w", "width", "<pixels>", "output image width");
     struct arg_int* height = arg_int0("h", "height", "<pixels>", "output image height");
     struct arg_dbl* scale = arg_dbl0("s", "scale", "<scalar>", "scale the object relative to the image frame");
+    struct arg_lit* lighting = arg_lit0("l", "lighting", "use typical lighting scheme instead of XYZ=RGB lighting");
     struct arg_end* end = arg_end(20);
-    void *argtable[] = {roll,pitch,yaw,org_x,org_y,org_z,width,height,scale,end};
-    roll->dval[0] = -.5;
-    pitch->dval[0] = 2.5;
-    yaw->dval[0] = -1.5;
+    void *argtable[] = {roll,pitch,yaw,org_x,org_y,org_z,width,height,scale,lighting,end};
+    roll->dval[0] = 0;
+    pitch->dval[0] = 45;
+    yaw->dval[0] = -45;
     org_x->dval[0] = 10;
     org_y->dval[0] = 10;
     org_z->dval[0] = 10;
@@ -89,12 +91,16 @@ int main(int argc, char** argv)
         matrix4 move_to_center = matrix4(center);
         double deg2rad = 3.1415926535/180.0;
         matrix4 rotate = matrix4(quaternion::from_roll_pitch_yaw(vector3(roll->dval[0]*deg2rad, pitch->dval[0]*deg2rad, yaw->dval[0]*deg2rad)));
+        matrix4 rotate_preuser = matrix4(quaternion::from_roll_pitch_yaw(vector3(0,90*deg2rad,0)));
         matrix4 scale_matrix = matrix4::identity();
         scale_matrix *= scale->dval[0];
         scale_matrix(3,3) = 1; //fix homogeneous component
         
-        //new_projection_matrix = move_to_center * rotate * scale_matrix * move_to_origin;
-        new_projection_matrix =  move_to_center * rotate * scale_matrix * move_to_origin;
+        new_projection_matrix =  move_to_center * rotate * rotate_preuser * scale_matrix * move_to_origin;
+
+        if(lighting->count) {
+            xyz_lighting = false;
+        }
         
         error_code = stl_to_ppm();
         if(error_code) exit(error_code);
@@ -115,7 +121,7 @@ int stl_to_ppm()
 
 	
 	vvolume view(new_width, new_height, new_projection_matrix, new_ambient_light_color,
-			new_light_direction, new_light_source_color);
+			new_light_direction, new_light_source_color, xyz_lighting);
 	
 	char header[80];
     char dummy[1024];
