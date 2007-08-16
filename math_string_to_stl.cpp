@@ -111,10 +111,10 @@ int main(int argc, char** argv) {
   else if (ny > 10000)
     ny = 10000;
 
-  if (ny < 10)
-    ny = 10;
-  else if (ny > 10000)
-    ny = 10000;
+  if (nz < 10)
+    nz = 10;
+  else if (nz > 10000)
+    nz = 10000;
 
   //cout << "nx: " << nx << " ny: " << ny << " nz: " << nz << " recursion_depth: " << recursion_depth << "\n";
 
