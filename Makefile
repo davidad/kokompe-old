@@ -1,6 +1,6 @@
 CC := g++
 CFLAGS := -Wall -O3 -I..
-LDFLAGS := -lxmlrpc -lxmlrpc_server -lxmlrpc_client -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_server_abyss -lxmlrpc_abyss -lpthread -lwwwhttp -lwwwxml
+LDFLAGS := -lxmlrpc -lxmlrpc_server -lxmlrpc_client -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_server_abyss -lxmlrpc_abyss -lpthread -lwwwhttp -lwwwxml -largtable2
 
 geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o
 geomeval:=geomeval
