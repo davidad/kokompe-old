@@ -5,6 +5,14 @@
  ../math_string_slice_to_ppm -2 2 -2 2 0 0.05 < teapot.postfix > teapot.ppm
 
  ../math_string_slice_to_ppm 1 2.3 1 2.3 -.005 0.005 < thinnerclient.postfix > thinner_client.ppm
+ pnmtopng < thinner_client.ppm > thinner_client.png
+Note: I couldn't get piping directly to pnmtopng to work --- some assertion fails.
 
 ../math_string_slice_to_toolpath 1 2.3 1 2.3 -.005 0.005 0.0075 < thinnerclient.postfix > thinner_client.toolpath
+
+../stl_to_ppm  --pitch 0.7 < teapot.stl | pnmtojpeg > teapot_image.jpg
+
+
+
+
 
