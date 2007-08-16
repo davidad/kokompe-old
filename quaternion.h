@@ -228,6 +228,7 @@ class _quaternion
 
 		static _quaternion from_roll_pitch_yaw(const _vector3<scalar>& rpy)
 		{
+#ifdef OLD_RPW
 		    scalar halfroll = rpy[0] / 2;
 			scalar halfpitch = rpy[1] / 2;
 			scalar halfyaw = rpy[2] / 2;
@@ -246,8 +247,10 @@ class _quaternion
 			q[2] = cos_r2 * sin_p2 * cos_y2 + sin_r2 * cos_p2 * sin_y2;
 			q[3] = cos_r2 * cos_p2 * sin_y2 - sin_r2 * sin_p2 * cos_y2;
 			return q;
+#else
+            return from_angle_axis(rpy[0], _vector3<scalar>(0,0,1)) * from_angle_axis(rpy[1], _vector3<scalar>(0,1,0)) * from_angle_axis(rpy[2], _vector3<scalar>(0,0,1));
+#endif
 		}
-		
 		_vector3<scalar> to_roll_pitch_yaw()
 		{
 			scalar roll_a =     2 * (vals[0]*vals[1] + vals[2]*vals[3]);
