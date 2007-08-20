@@ -34,7 +34,7 @@ private:
   int is_true() const;
   int is_false() const;
   int is_mixed() const;
-  int interval_t::is_unknown() const;
+  int is_unknown() const;
   float get_upper() const;
   float get_lower() const;
   int overlaps(const interval_t &b) const;
