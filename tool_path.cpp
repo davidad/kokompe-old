@@ -280,7 +280,11 @@ tool_path compute_tool_path(const array_2d<char>& obj, double tool_radius, doubl
 
 std::ostream& operator<<(std::ostream& os, const lattice_point& p)
 {
-	os << "[" << p[0] << ", " << p[1] << "]";
+	long t = -1; //Fix to proper value
+	os.write(p, 8);
+	os.write(t, 4);
+        //"Forrest Path" version below.
+	//os << "[" << p[0] << ", " << p[1] << "]";
 	return os;
 }
 
