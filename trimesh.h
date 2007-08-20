@@ -165,9 +165,9 @@ public:
 	void edge_refine();
 	void recalculate_normals();
 	void mark_triangles_needing_division();
-	void trimesh_t::divide_triangles();
-	void trimesh_t::move_verticies_toward_corners();
-	void trimesh_t::add_centroid_to_object_distance(); 
+	void divide_triangles();
+	void move_verticies_toward_corners();
+	void add_centroid_to_object_distance(); 
 
 	friend ostream& operator<<(ostream &s, trimesh_t &v);
 };
