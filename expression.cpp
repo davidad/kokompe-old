@@ -70,9 +70,9 @@ static const int assoc[] = {0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,1,1,0};
 // There are only three variables, X, Y, and Z
 // corresponding to intervals of the three space dimensions
 
-static const int var_num = 3;
-static const string var_name[] = {"X", "Y", "Z"};
-static const int var_code[] = {0, 1, 2};  
+static const int var_num = 6;
+static const string var_name[] = {"X", "Y", "Z", "x", "y", "z"};
+static const int var_code[] = {0, 1, 2, 0, 1, 2};  
 
 
 
