@@ -3,6 +3,10 @@
 #include <iostream>
 using namespace std;
 
+#include <stdlib.h>
+#include <sys/types.h>
+#include <time.h>
+
 
 #include "octree.h"
 #include "expression.h"
@@ -22,6 +26,22 @@ using namespace std;
 #include <windows.h>
 #include "gui.h"
 #include "guicon.h"
+#endif
+
+clock_t start_time;
+clock_t end_time;
+
+void start_clock() {
+	start_time = clock();
+}
+
+void end_clock() {
+	end_time = clock();
+	float run_time = (float)(end_time - start_time)/(float)CLOCKS_PER_SEC;
+	cout << run_time << " seconds." << endl;
+}
+
+#ifdef WIN32
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
 				   LPSTR lpCmdLine, int iCmdShow) {
 
@@ -30,15 +50,14 @@ int main(int argc, char* argv[]) {
 
 #endif
 
-
   interval_t interval1, result;
   string infix, postfix;
-  float x, y, z;   
- 
+
 #ifdef WIN32  
   RedirectIOToConsole();
 #endif
   
+
   // Define the evaluation interval for the expression  
   interval1.set_real_interval(-1, 1);
   space_interval_t si(interval1, interval1, interval1);
@@ -54,34 +73,43 @@ int main(int argc, char* argv[]) {
 
   //infix = "(X >= 0) & (Y <= 0) ~ (X <= .2)";
   //cout << "Infix = \n" << infix << endl;
-  cout << "Converting Infix to Postfix...\n";
+  cout << "Converting Infix to Postfix... ";
+  start_clock();
   postfix = convert_infix_to_postfix(infix);
-  
+  end_clock();
+
   // Display infix and postfix string 
-  cout << "Infix: '" << infix << "'\n";
-  cout << "Postfix: '" << postfix << "'\n";
+  //cout << "Infix: '" << infix << "'\n";
+  //cout << "Postfix: '" << postfix << "'\n";
   
   // Construct an expression object from the postfix strin
   // This is stored as an abstract syntax tree
-  cout << "Creating Abstract Syntax Tree...\n";
+  cout << "Creating Abstract Syntax Tree... ";
+  start_clock();
   expression_t ex(postfix);
-   
+  end_clock(); 
+
   // Construct an octree evaluation context object from the 
   // expression and evaluation interval  
+  cout << "Constructing Octree... ";
+  start_clock();
   octree_t octree(ex, si); 
+  end_clock();
 
   // Evaluate and prune the expression on the orctree to
   // a specified recursion depth    
-  cout << "Evaluating Expression on Octree...\n";
-  octree.eval(7);
+  cout << "Evaluating Expression on Octree... ";
+  start_clock();
+  octree.eval(6);
+  end_clock();
 
   //TESTING OF TOOL_PATH generation
-  array_2d<char> results(60,60);
+  /*array_2d<char> results(60,60);
   octree.eval_on_grid(si, results.width, results.height, 1, &results[0]);
-  cout << "Computing tool path..." << endl;
+  cout << "Computing tool6path..." << endl;
   tool_path test = compute_tool_path(results, 1.5, .75);
   cout << test << endl;
-  cout << "Tool path computed." << endl;
+  cout << "Tool path computed." << endl;*/
 
 
   /*
@@ -126,41 +154,37 @@ int main(int argc, char* argv[]) {
   }
 */
 
-
-
-
-
-  //delete results;
- 
-  //vector_t foo;
-  //vector_t bar(1,2,3);
-  //foo.set(3,4,5);
-  cout << "Triangulating Object...\n";
+  cout << "Triangulating Object... ";
+  start_clock();
   trimesh_t trimesh; 
-  trimesh.populate(&octree, &si, 200, 200, 200);
- cout << "Refining Triangulation...\n";
+  trimesh.populate(&octree, &si, 150, 150, 150);
+  end_clock();
+
+  cout << "Refining Triangulation... ";
+  start_clock();
   trimesh.refine();
-	
- // trimesh.remove_splinters();
-  //
+  end_clock();	
 
-  cout << "Marking triangles needing further refinement...\n";
+
+  cout << "Marking triangles needing further refinement... ";
+  start_clock();
   trimesh.mark_triangles_needing_division();
+  end_clock();
 
-	cout << "computing centroid to object distance for these triangle...\n";
-	trimesh.add_centroid_to_object_distance();
+	//cout << "computing centroid to object distance for these triangle...\n";
+	//trimesh.add_centroid_to_object_distance();
 
 //  for(int i=0; i<4; i++) {
-	cout << "moving verticies toward corners and edges...\n";
-	trimesh.move_verticies_toward_corners();
+	//cout << "moving verticies toward corners and edges...\n";
+	//trimesh.move_verticies_toward_corners();
 
 //	trimesh.refine();
  // }
-	cout << "recalculating normals...\n";
-trimesh.recalculate_normals();
+//	cout << "recalculating normals...\n";
+//trimesh.recalculate_normals();
 
-	cout << "writing STL file...\n";
- trimesh.write_stl("stlfile2.stl");
+//	cout << "writing STL file...\n";
+ //trimesh.write_stl("stlfile2.stl");
   //cout << trimesh;
 
 #ifdef WIN32

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <sys/types.h>
+#include <time.h>
 #include <cmath>
 using namespace std;
 
@@ -38,17 +39,22 @@ trimesh_t::trimesh_t() {
 
 // Set up the tables used to populate a trimesh
 void trimesh_t::initialize_tables() {
-	int i,j;
-	for (i=0; i<3; i++) {
+	for (int i=0; i<3; i++) {
 		voxel_table[i] = new char[nx*ny];
 		verticies_table[i] = new vertex_t*[(nx-1)*(ny-1)];
 		voxel_centers_table[i] = new vector_t*[nx*ny];
+		
+		memset(verticies_table[i], (unsigned char)NULL, (nx-1)*(ny-1)*sizeof(vector_t*));
+		memset(voxel_centers_table[i], (unsigned char)NULL, nx*ny*sizeof(vector_t*));
+		
+		/*  No performance difference, but above is more compact 
+		
 		for (j=0; j< (nx-1)*(ny-1); j++) {
 			verticies_table[i][j] = NULL;
 		}
 		for (j=0; j< nx*ny; j++) {
 			voxel_centers_table[i][j] = NULL;
-		}	
+		}	*/
 	}		
 }
 
@@ -63,13 +69,15 @@ void trimesh_t::fill_voxels(interval_t X, interval_t Y, int index) {
 	octree->eval_on_grid(slice, nx, ny, 1, voxel_table[index]);
 }
 
-
 // Populate a trimesh using an evaluated octree on a given space interval,
 // with a rectangular lattice using an underlying voxel grid with
 // nx, ny, and nz elements in each direction
 void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int ny, int nz) {
 	int ix, iy, iz, i, index;
-	
+	char *tmp_voxel_table;
+	vertex_t **tmp_verticies_table;
+	vector_t **tmp_voxel_centers_table;
+
 	//cout << "nx: " << nx << "ny: " << ny << " nz: " << nz << "\n";
 
 	// Store pointer to octree to evaluate
@@ -146,40 +154,33 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 		
 		// If the loop will run again
 		if ((iz+1) < (nz-1)) {
-
-			// Roll through voxel grid
-			delete voxel_table[0];
+			// Roll through voxel grid			
+			tmp_voxel_table = voxel_table[0];
 			voxel_table[0] = voxel_table[1];
 			voxel_table[1] = voxel_table[2];
-			voxel_table[2] = new char[nx*ny];
+			voxel_table[2] = tmp_voxel_table;
 			fill_voxels(X,Y,2);
 
-			delete verticies_table[0];
+			tmp_verticies_table = verticies_table[0];
 			verticies_table[0] = verticies_table[1];
 			verticies_table[1] = verticies_table[2];
-			verticies_table[2] = new vertex_t*[(nx-1)*(ny-1)];
-			
-			for (i=0; i< (nx-1)*(ny-1); i++) {
-				verticies_table[2][i] = NULL;
-			}
+			verticies_table[2] = tmp_verticies_table;
+			memset(verticies_table[2], (unsigned char)NULL, (nx-1)*(ny-1)*sizeof(vertex_t*));
 		
-			delete voxel_centers_table[0];
+			tmp_voxel_centers_table = voxel_centers_table[0];
 			voxel_centers_table[0] = voxel_centers_table[1];
 			voxel_centers_table[1] = voxel_centers_table[2];
-			voxel_centers_table[2] = new vector_t*[nx*ny];
-			for (i=0; i< nx*ny; i++) {
-				voxel_centers_table[2][i] = NULL;
-			}	
-			//cout << "DID ROLLOVER\n";
+			voxel_centers_table[2] = tmp_voxel_centers_table;
+			memset(voxel_centers_table[2],(unsigned char)NULL, nx*ny*sizeof(vector_t*));
 		}
 		else {
 			// All done - Free dynamic memory used for pointer tables		
 			for(i=0; i<3; i++) {
+				delete voxel_table[i];
 				delete verticies_table[i];
 				delete voxel_centers_table[i];
 			}
 		}
-	
 	}
 }
 
@@ -982,21 +983,18 @@ void trimesh_t::move_verticies_toward_corners() {
 	//list<vector_t*>::iterator vertex_inside_point_iterator;
 	//list<vector_t*>::iterator vertex_outside_point_iterator;
 	list<trimesh_node_t*>::iterator triangle_iterator;
-	int dirty;
 	float best_cost, current_cost;
 	vector_t normal, start, v;
 	int xc, yc, zc;
 	float xp, yp, zp;
 	float xpstep, ypstep, zpstep;
 	float xpstart, ypstart, zpstart;
-	int index, best_xc, best_yc, best_zc;
+	int best_xc, best_yc, best_zc;
 	vector_t best_v;
 	int set_best, outside_corner;
 	float stepmul;
 	int points, i;
-	float xmin, xmax, ymin, ymax, zmin, zmax;
-	int not_optimal;
-	float dx, dy, dz;
+	
 
 
 	//vertex_inside_point_iterator = vertex_inside_point.begin();
@@ -1678,9 +1676,9 @@ void trimesh_t::drawgl() {
     list<trimesh_node_t*>::iterator triangle_iterator;
 	
 	// Set up material color and light reflection properties
-   GLfloat mat_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
-   GLfloat mat_specular[] = { 0.1, 0.1, 0.1, 1.0 };
-   GLfloat mat_diffuse[] = { 0, 0, 0.7, 1.0 };
+   GLfloat mat_ambient[] = { (GLfloat)0.2f, (GLfloat)0.2f, (GLfloat)0.2f, (GLfloat)1.0f };
+   GLfloat mat_specular[] = { (GLfloat)0.1f, (GLfloat)0.1f, (GLfloat)0.1f, (GLfloat)1.0f };
+   GLfloat mat_diffuse[] = { (GLfloat)0.0f, (GLfloat)0.0f, (GLfloat)0.7f, (GLfloat)1.0f };
    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
    glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
@@ -1697,7 +1695,7 @@ void trimesh_t::drawgl() {
 	//		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 	//	}
 	//	else {
-		GLfloat mat_diffuse[] = { 0, 0, 0.7, 1.0 };
+		GLfloat mat_diffuse[] = { 0.0f, 0.0f, 0.7f, 1.0f };
 			glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 	//	}
 	
