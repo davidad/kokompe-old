@@ -33,7 +33,7 @@ image := image
 compile: all
 
 
-all:  $(geomeval) $(xmlrpc_server) $(xmlrpc_client) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)  $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath)
+all:  $(geomeval) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)  $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath)
 
 
 $(geomeval): $(geomeval_obj)
