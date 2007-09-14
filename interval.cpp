@@ -170,7 +170,7 @@ interval_t interval_t::div(const interval_t &a, const interval_t& b) {
       // I think there may be some limit analysis
       // that could be done here, but for now just
       // set interval to +/- Inf
-      cout << "Division by interval containing zero.\n";
+      cerr << "Division by interval containing zero.\n";
 
       temp.set_real_interval(-(float)HUGE, +(float)HUGE);
     }
