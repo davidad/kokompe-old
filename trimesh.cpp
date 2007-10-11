@@ -7,11 +7,13 @@
 #include <cmath>
 using namespace std;
 
-#ifdef WIN32
-#include <windows.h>
-#include <gl/gl.h>
-#define M_PI 3.14159f
-#endif
+#include <GL/glut.h>
+
+//#ifdef WIN32
+//#include <windows.h>
+//#include <gl/gl.h>
+//#define M_PI 3.14159f
+//#endif
 
 using namespace std;
 
@@ -1665,8 +1667,6 @@ void trimesh_t::fill_stl(char **buffer, int *buffer_size) {
 void trimesh_t::drawgl() {
 
 
-#ifdef WIN32
-
 	vector_t v1, v2, v3,n;
 
 	// Draws a trimesh to an already-set-up OpenGL window
@@ -1707,10 +1707,6 @@ void trimesh_t::drawgl() {
 		glEnd();		
 	}
 
-#else
-
-	cout << "GL not currently supported in UNIX version on geomeval.\n";
-#endif
 
 }
 
