@@ -4,6 +4,7 @@
 #include <GL/glut.h>
 
 #include "color.h"
+#include "commands.h"
 
 static int mouse_button;
 static int mouse_state;
@@ -54,6 +55,8 @@ void kokompe::init(int argc, char** argv)
 
 	background_color = steel_blue;
 	active_kokompe = this;
+
+	init_py_commands();
 
 }
 
@@ -106,17 +109,12 @@ void kokompe::render()
 
 void kokompe::handle_key(char key)
 {
-	console.handle_key(key);
+	process_key(key);
 }
 
 void kokompe::special(int key)
 {
-	if(key == GLUT_KEY_PAGE_UP) console.scroll(-1);
-	else if(key == GLUT_KEY_PAGE_DOWN) console.scroll(1);
-	else if(key == GLUT_KEY_HOME) console.scroll_abs(-1);
-	else if(key == GLUT_KEY_END) console.scroll_abs(0);
-	else if(key == GLUT_KEY_UP) console.last_command();
-	else if(key == GLUT_KEY_DOWN) console.next_command();
+	process_special(key);
 }
 
 void kokompe::reshape(int new_width, int new_height)

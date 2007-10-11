@@ -14,7 +14,6 @@ class kokompe
 		trimesh_t trimesh;
 		Camera camera;
 		color background_color;
-		gui_console console;
 	public:
 		//functions that will be pythonized
 		//void set_display_color(color new_color);
@@ -31,6 +30,9 @@ class kokompe
 		void mouse(int button, int state, int x, int y);
 		void mouse_motion(int x, int y);
 
+		gui_console console;
+
 };
 
 extern kokompe* active_kokompe;
+#define gui active_kokompe
