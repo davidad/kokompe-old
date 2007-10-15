@@ -1,11 +1,33 @@
-#include </usr/include/python2.4/Python.h>
+#ifdef WIN32
+	#ifdef DEBUG
+		#undef DEBUG
+		#undef _DEBUG
+		#include <Python.h>
+		#define DEBUG
+		#define _DEBUG
+	#else
+		#include <Python.h>
+	#endif
+#else
+	#include </usr/include/python2.4/Python.h>
+#endif
 
+
+#ifdef WIN32
+#include <glut.h>
+#else
 #include <GL/glut.h>
+#endif
+
+
 #include <string>
 #include <map>
 #include <fstream>
 
 #include "commands.h"
+
+
+
 #include "console_commands.h"
 #include "kokompe.h"
 

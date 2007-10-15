@@ -1,6 +1,14 @@
-#include <GL/glut.h>
 #include <iostream>
 using namespace std;
+
+
+#ifdef WIN32
+#include <glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+
 
 #include "camera.h"
 

@@ -20,6 +20,9 @@ void eval_geometry(const std::string& infix, trimesh_t& trimesh)
   interval1.set_real_interval(-1, 1);
   // Define the evaluation interval for the expression  
   space_interval_t si(interval1, interval1, interval1);
+  
+  cout << "Converting: " << infix << "\n";
+
   postfix = convert_infix_to_postfix(infix);
   
   cout << "Creating Abstract Syntax Tree...\n";

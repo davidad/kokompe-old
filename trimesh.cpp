@@ -7,13 +7,17 @@
 #include <cmath>
 using namespace std;
 
+
+#ifdef WIN32
+#include <windows.h>
+#include <gl/gl.h>
+#include <glut.h>
+#define M_PI 3.14159f
+#else
 #include <GL/glut.h>
 
-//#ifdef WIN32
-//#include <windows.h>
-//#include <gl/gl.h>
-//#define M_PI 3.14159f
-//#endif
+#endif
+
 
 using namespace std;
 

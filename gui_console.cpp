@@ -1,10 +1,20 @@
+#ifdef WIN32
+#include "Python.h"
+#else
 #include </usr/include/python2.4/Python.h>
+#endif
 #include "gui_console.h"
 #include "kokompe.h"
-#include <GL/glut.h>
-#include "commands.h"
+
 #include <iostream>
 #include <sstream>
+#ifdef WIN32
+#include <glut.h>
+#else
+#include <GL/glut.h>
+#endif
+#include "commands.h"
+
 using std::vector;
 using std::string;
 

@@ -1,5 +1,14 @@
-#include <GL/glut.h>
 #include "math_gl.h"
+
+
+#ifdef WIN32
+#include <glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+
+
 
 void glNormal(const _vector3< double >& n)
 {

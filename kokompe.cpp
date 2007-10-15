@@ -1,7 +1,12 @@
 #include "kokompe.h"
 
 #include <iostream>
+#ifdef WIN32
+#include <glut.h>
+#include <windows.h>
+#else
 #include <GL/glut.h>
+#endif
 
 #include "color.h"
 #include "commands.h"
@@ -66,14 +71,19 @@ void kokompe::render()
 	static unsigned int elapsed_frames = 0;
 	elapsed_frames++;
 
+
+
 	glClearColor(background_color[0], background_color[1], background_color[2], 1.0);
+	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear Screen And Depth Buffer
-    glEnable(GL_DEPTH_TEST);   // Depth testing must be turned on
+    /*glEnable(GL_DEPTH_TEST);   // Depth testing must be turned on
     glEnable(GL_LIGHTING);     // Enable lighting calculations
     glEnable(GL_LIGHT0);       // Turn on light #0.
+	glEnable(GL_SMOOTH);*/
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
+
 	camera.ApplyPerspective();
 
 
@@ -83,13 +93,24 @@ void kokompe::render()
 
     // Set light properties
     GLfloat Lt0diff[] = {1.0,1.0,1.0,1.0};
-    GLfloat Lt0pos[] = {1.0f,1.0f,5.0f,1.0};
+    GLfloat Lt0pos[] = {1.0f,1.0f,5.0f,0.0};
     glLightfv(GL_LIGHT0, GL_DIFFUSE, Lt0diff);
     glLightfv(GL_LIGHT0, GL_POSITION, Lt0pos);
 
+	GLfloat light_position[] = { 10.0, 10.0, 10.0, 1.0 };
+	GLfloat lm_ambient[] = { 0.5, 0.5, 0.5, 1.0 };
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lm_ambient);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_DEPTH_TEST);
+	glShadeModel (GL_SMOOTH);
+
+
+
+	//camera.ApplyModelview();
 
 	camera.ApplyModelview();
-	
     // Set material properties of object
     // These colors are RGBA.  Keep the last value at 1.0.
 	GLfloat diffColor[4] = {.7,.7,.7,1.0};
@@ -185,9 +206,27 @@ void _mouse_motion(int x, int y)
 	glutPostRedisplay();
 }
 	
-int main(int argc, char** argv)
-{
+
+#if 0 //WIN32
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
+				   LPSTR lpCmdLine, int iCmdShow) {
+
+#else
+int main(int argc, char** argv) {
+
+#endif
+
+	
 	kokompe the_app;
+#if 0 //WIN32
+	char* argv[1];
+	
+
+	argv[0] = "kokompe";
+
+	the_app.init(1, argv);
+#else
 	the_app.init(argc, argv);
+#endif
 	the_app.run();
 }
