@@ -123,6 +123,7 @@ private:
 	// Class members that provide context about the trimesh
 	list<vector_t*> vertex_inside_point;
 	list<vector_t*> vertex_outside_point;
+	list<vector_t*> voxel_centers;  // unique list of vertex inside/outside points for depopulate
 	int num_triangles;
 
 
@@ -154,8 +155,10 @@ private:
 
 public:
 	trimesh_t();	// Constructor
+	~trimesh_t();   // Destructor
 	// Create a triangulated mesh from an evaluated octree on a given space interval
 	void populate(octree_t* octree, space_interval_t* region, int nx, int ny, int nz);
+	void depopulate();
 	// Write an 3D Systems Format Binary STL file from a triangulated mesh
 	void write_stl(string filename);
 	void fill_stl(char **buffer, int *length);

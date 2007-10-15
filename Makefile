@@ -7,7 +7,7 @@ LIBS := -lglut -lpython2.4
 geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o
 geomeval:=geomeval
 
-kokompe_obj:=kokompe.o camera.o commands.o gui_console.o eval_geometry.o math/math_gl.o 
+kokompe_obj:=kokompe.o camera.o commands.o console_commands.o gui_console.o eval_geometry.o math/math_gl.o 
 kokompe_obj+= octree.o expression.o interval.o space_interval.o vector.o trimesh.o
 kokompe:=kokompe
 

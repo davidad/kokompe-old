@@ -37,6 +37,7 @@ void eval_geometry(const std::string& infix, trimesh_t& trimesh)
 
   cout << "Triangulating Object...\n";
 
+  trimesh.depopulate();
   trimesh.populate(&octree, &si, 200, 200, 200);
 
   /*
