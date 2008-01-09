@@ -276,7 +276,7 @@ void broken_fill_2d_triangle(vector3* v, vector3 tri_color, vector3 slope, vecto
 		
 	}
 	
-	/*
+	
 	
 	
 	

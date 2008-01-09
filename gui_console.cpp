@@ -1,7 +1,7 @@
 #ifdef WIN32
 #include "Python.h"
 #else
-#include </usr/include/python2.4/Python.h>
+#include </usr/include/python2.5/Python.h>
 #endif
 #include "gui_console.h"
 #include "kokompe.h"

@@ -37,6 +37,7 @@ int open_input_file(const char* filename)
 	}
 	
 	in = &in_file;
+	return 0;
 }
 
 int open_output_file(const char* filename)
@@ -48,6 +49,7 @@ int open_output_file(const char* filename)
 	}
 	
 	out = &out_file;
+	return 0;
 }
 
 int main(int argc, char** argv)
@@ -124,7 +126,6 @@ int stl_to_ppm()
 			new_light_direction, new_light_source_color, xyz_lighting);
 	
 	char header[80];
-    char dummy[1024];
 
 	(*in).read(header, 80);
 	unsigned int num_triangle;

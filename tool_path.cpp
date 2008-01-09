@@ -128,7 +128,7 @@ class cut_stroke
 unsigned int mark_boundery_cells(cell_array& cells)
 {
 	unsigned int current_count = 0;
-	for(int i = 0; i < cells.size; i++)
+	for(unsigned int i = 0; i < cells.size; i++)
 	{
 		if(cells[i] != 0)
 		{
@@ -150,9 +150,9 @@ unsigned int mark_boundery_cells(cell_array& cells)
 
 void display(const cell_array& cells, int current)
 {
-	for(int i = 0; i < cells.size; i++)
+	for(unsigned int i = 0; i < cells.size; i++)
 	{
-		if(i == current)
+	  if((int)i == current)
 		{
 			std::cout << "X";
 		//}else if(cells.is_top_row(i))

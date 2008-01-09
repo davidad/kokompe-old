@@ -26,11 +26,11 @@ class vvolume
 		//void horz_line(int start_x, int end_x, int y, vector3 line_color, vector3 slope, vector3 normal);
 		void horz_line(double x1, double x2, double y, double min_x, double max_x, vector3 line_color, vector3 slope);
 	public:
-		vvolume::vvolume(unsigned int new_width, unsigned int new_height, 
+	       vvolume(unsigned int new_width, unsigned int new_height, 
 			matrix4 new_projection_matrix, vector3 new_ambient_light_color,
 			vector3 new_light_direction, vector3 new_light_source_color, bool xyz_lighting);
-		void vvolume::draw_triangle(vector3* verticies, vector3 tri_color);
-		void vvolume::draw_triangle(vector3* verticies, vector3 normal, vector3 tri_color);
+		void draw_triangle(vector3* verticies, vector3 tri_color);
+		void draw_triangle(vector3* verticies, vector3 normal, vector3 tri_color);
 		void write_to_stream(std::ostream& os);
 };
 

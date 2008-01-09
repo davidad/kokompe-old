@@ -9,7 +9,7 @@
 		#include <Python.h>
 	#endif
 #else
-	#include </usr/include/python2.4/Python.h>
+	#include </usr/include/python2.5/Python.h>
 #endif
 
 

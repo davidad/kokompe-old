@@ -611,7 +611,7 @@ void trimesh_t::refine() {
 int ratio_test(vertex_t verticies[3], int* bad_vertex) {
 	vector_t cross_product;
 	float min_ratio = 0.2f;  /// woah!!!
-	float sidea, sideb, sidec, fourAsquared, ratiosquared;
+	float sidea, sideb, sidec, fourAsquared, ratiosquared = 0.0;
 
 	 cross_product = cross(sub(verticies[1], verticies[0]), sub(verticies[2], verticies[0]));
 	 fourAsquared = dot(cross_product, cross_product);
@@ -619,15 +619,15 @@ int ratio_test(vertex_t verticies[3], int* bad_vertex) {
 	 sideb = dot(sub(verticies[2], verticies[1]),sub(verticies[2], verticies[1]));
 	 sidec = dot(sub(verticies[0], verticies[2]),sub(verticies[0], verticies[2]));
      	
-	 if ((sidea > sideb) && (sidea > sidec)) {
+	 if ((sidea >= sideb) && (sidea >= sidec)) {
 		 *bad_vertex = 2;
 		 ratiosquared = fourAsquared/(sidea*sidea);
 	 }
-	 if ((sideb > sidea) && (sideb > sidec)) {
+	 if ((sideb >= sidea) && (sideb >= sidec)) {
 		 *bad_vertex = 0;
 		 ratiosquared = fourAsquared/(sideb*sideb);
 	 }
-	 if ((sidec > sidea) && (sidec > sideb)) {
+	 if ((sidec >= sidea) && (sidec >= sideb)) {
 		 *bad_vertex = 1;
 		 ratiosquared = fourAsquared/(sidec*sidec);
 	 }
@@ -1052,7 +1052,7 @@ void trimesh_t::move_verticies_toward_corners() {
 	float xp, yp, zp;
 	float xpstep, ypstep, zpstep;
 	float xpstart, ypstart, zpstart;
-	int best_xc, best_yc, best_zc;
+	int best_xc = 0, best_yc = 0 , best_zc = 0;
 	vector_t best_v;
 	int set_best, outside_corner;
 	float stepmul;
@@ -1731,8 +1731,6 @@ void trimesh_t::drawgl() {
 	vector_t v1, v2, v3,n;
 
 	// Draws a trimesh to an already-set-up OpenGL window
-	float mcolor[] = { 0.8f, 0.0f, 0.0f, 1.0f };
-	float specReflection[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 
     list<trimesh_node_t*>::iterator triangle_iterator;
 	
