@@ -7,11 +7,17 @@
 #include <cmath>
 using namespace std;
 
+
 #ifdef WIN32
 #include <windows.h>
 #include <gl/gl.h>
+#include <glut.h>
 #define M_PI 3.14159f
+#else
+#include <GL/glut.h>
+
 #endif
+
 
 using namespace std;
 
@@ -34,6 +40,12 @@ trimesh_t::trimesh_t() {
 	}
 	num_triangles = 0;
 	next_vertex_number = 0;
+}
+
+
+// Destructor
+trimesh_t::~trimesh_t() {
+  this->depopulate();
 }
 
 
@@ -184,6 +196,55 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 	}
 }
 
+// Depopulate a trimesh so it can be used again
+void trimesh_t::depopulate() {
+  list<trimesh_node_t*>::iterator triangle_iterator;
+  list<vertex_t*>::iterator vertex_iterator;
+  list<vector_t*>::iterator vector_iterator;
+  
+  for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) 
+    delete *triangle_iterator;
+  for(vertex_iterator =verticies.begin(); vertex_iterator != verticies.end(); vertex_iterator++) 
+    delete *vertex_iterator;
+  for(vector_iterator = voxel_centers.begin(); vector_iterator != voxel_centers.end(); vector_iterator++) 
+    delete *vector_iterator;
+
+  triangles.clear();
+  verticies.clear();
+  voxel_centers.clear();
+  vertex_inside_point.clear();
+  vertex_outside_point.clear();
+
+  num_triangles = 0;
+  octree = NULL;
+
+  nx = 0; 
+  ny = 0;
+  nz = 0;
+  
+  xstep = 0.0f;
+  ystep = 0.0f;
+  zstep = 0.0f;
+  zhorizon = 0.0f;
+  xstart = 0.0f;
+  ystart = 0.0f;
+  zstart = 0.0f;
+
+  x = 0.0f;
+  y = 0.0f;
+  z = 0.0f;
+
+  for (int i=0; i<3; i++) {
+    voxel_table[i] = NULL;
+    verticies_table[i] = NULL;
+    voxel_centers_table[i] = NULL;
+  }
+
+  next_vertex_number = 0;
+
+}
+
+
 
 
 // Return the standardized number of an edge given the number
@@ -265,12 +326,14 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 		y = ystart + ((float)in_iy + 0.5f)*ystep;
 		z = zstart + ((float)in_iz + 0.5f)*zstep;
 		voxel_centers_table[in_slice][in_index] = new vector_t(x, y, z);
+		voxel_centers.push_back(voxel_centers_table[in_slice][in_index]);
 	}
 	if (voxel_centers_table[out_slice][out_index] == NULL) {
 		x = xstart + ((float)out_ix+0.5f)*xstep;
 		y = ystart + ((float)out_iy+0.5f)*ystep;
 		z = zstart + ((float)out_iz+0.5f)*zstep;
 		voxel_centers_table[out_slice][out_index] = new vector_t(x, y, z);
+		voxel_centers.push_back(voxel_centers_table[out_slice][out_index]);
 	}
 
 	// Add verticies to shared table, and record pointers to those 
@@ -1665,8 +1728,6 @@ void trimesh_t::fill_stl(char **buffer, int *buffer_size) {
 void trimesh_t::drawgl() {
 
 
-#ifdef WIN32
-
 	vector_t v1, v2, v3,n;
 
 	// Draws a trimesh to an already-set-up OpenGL window
@@ -1707,10 +1768,6 @@ void trimesh_t::drawgl() {
 		glEnd();		
 	}
 
-#else
-
-	cout << "GL not currently supported in UNIX version on geomeval.\n";
-#endif
 
 }
 

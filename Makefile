@@ -2,9 +2,14 @@ CC := g++
 CFLAGS := -Wall -O3 -I..
 LDFLAGS := -lpthread -largtable2
 XMLRPC_LDFLAGS := -lwwwhttp -lwwwxml -lxmlrpc -lxmlrpc_server -lxmlrpc_client -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_server_abyss -lxmlrpc_abyss 
+LIBS := -lglut -lpython2.4
 
 geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o
 geomeval:=geomeval
+
+kokompe_obj:=kokompe.o camera.o commands.o console_commands.o gui_console.o eval_geometry.o math/math_gl.o 
+kokompe_obj+= octree.o expression.o interval.o space_interval.o vector.o trimesh.o
+kokompe:=kokompe
 
 xmlrpc_server_obj:=xmlrpc_server.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
 xmlrpc_server:= xmlrpc_server
@@ -33,9 +38,11 @@ image := image
 compile: all
 
 
-all:  $(geomeval) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)  $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath)
+all:  $(geomeval) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)  $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath) $(kokompe)
 
-
+$(kokompe): $(kokompe_obj)
+	g++ -o $@ $(kokompe_obj) $(LDFLAGS) $(LIBS)
+		
 $(geomeval): $(geomeval_obj)
 	g++ -o $@ $(geomeval_obj) $(LDFLAGS) $(LIBS)
 
