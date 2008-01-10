@@ -14,13 +14,13 @@ Introduction
 
 Kokompe is a project to build a powerful, easy-to-use, unified interface for
 controlling fab lab tools.  It is also a research project investigating the use
-of mathematical strings to describe geometry, rather than B-splines, traingle
+of mathematical strings to describe geometry, rather than B-splines, triangle
 meshes or other more conventional approaches.
 
 Kokompe is meant to eventually replace Neil's cad.py and cam.py, but it has a
-long way to go.  Kokompe has a core of efficient algorithims for rendering
+long way to go.  Kokompe has a core of efficient algorithms for rendering
 geometry described as math strings and generating toolpaths from geometry, but
-has only a rudimentary user inferface and little if any machine support.
+has only a rudimentary user interface and little if any machine support.
 
 Kokompe is meant to eventually have a user-friendly web interface, so that
 people can work on designs from any net-connected machine in the world, without
@@ -42,7 +42,7 @@ multiple ways, pending brilliant ideas and code.
 How to Build Kokompe on Linux
 -----------------------------
 
-0. Install Linux. Ubunty Gutsy is recommended, although other distributions
+0. Install Linux. Ubuntu Gutsy is recommended, although other distributions
    will probably work fine.
 
 1. Obtain the kokompe source.  If you are reading this document, you probably
@@ -92,14 +92,14 @@ math_string_to_stl xmin xmax ymin ymax zmin zmax feature_size
   given is too small, rendering may take forever or the machine may run out of
   memory.
 
-math_string_slice_to_ppm xmin xmax ymin ymax zlevel feature_size
+math_string_slice_to_ppm xmin xmax ymin ymax z feature_size
   Over a bounding box from (xmin,xmax) -> (ymin,ymax), evaluates the postfix
   math string on stdin and returns binary PPM on stdout.  feature_size is as
-  above.  If the math string contains only X and Y, zlevel is unimportant and
-  may be set to 0.  If the math string contains "Z", it is evaulated at Z =
-  zlevel
+  above.  If the math string contains only X and Y, z is unimportant and
+  may be set to 0.  If the math string contains "Z", it is evaluated at Z =
+  z
 
-math_string_slice_to_toolpath xmin xax ymin ymax zlevel feature_size tool_radius
+math_string_slice_to_toolpath xmin xmax ymin ymax z feature_size tool_radius
   Takes a postfix math string on stdin and returns a "Forrest-format toolpath"
   on stdout.  Arguments descriptions are the same as math_string_slice_to_ppm.
 
@@ -116,7 +116,7 @@ stl_to_ppm
   --width	Output image width, pixels
   --height	Output image height, pixels
   --scale	scale of the object relative to the image frame
-  --lighting	If given, use photorealistic lighting rather than default
+  --lighting	If given, use photo-realistic lighting rather than default
                 XYZ=RGB
 
 
@@ -129,7 +129,7 @@ The Intermediate Data Formats
 This is a mathematical string representing geometry, in ASCII format.  The
 string, in floating-point variables, "X", "Y", and "Z", should evaluate to TRUE
 if the object is there and FALSE if it is not.  The string is infix, has Python
-operator precendence, and supports the following operators:
+operator precedence, and supports the following operators:
 +, -, *, /, =, &, |, ~, sin, cos, ** (exponent)
 
 Examples:
