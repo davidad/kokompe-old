@@ -1,64 +1,82 @@
 KOKOMPE 0.001 
 =============
 
-Ara Knaian, David Darlymple, Forrest Green, Smari McCarthy, Amy Sun, add your name here...
+Contributors (alphabetical)
+------------
+Amy Sun
+Ara Knaian
+David Dalrymple
+Forrest Green
+Smári McCarthy
 
 Introduction
 ------------
 
-Kokompe is a project to build a powerful, easy-to-use, unified interface for controlling
-fab lab tools.  It is also a research project investigating the use of mathematical
-strings to describe geometry, rather than B-spines or other more conventional approaches.
+Kokompe is a project to build a powerful, easy-to-use, unified interface for
+controlling fab lab tools.  It is also a research project investigating the use
+of mathematical strings to describe geometry, rather than B-splines, traingle
+meshes or other more conventional approaches.
 
-Kokompe is meant to eventually replace Neil's cad.py and cam.py, but it has a long way to go.
-Kokompe has a core of efficient algorithims for rendering geometry described as math strings and 
-generating toolpaths from geometry, but has only a rudimetry user inferface and little if
-and machine support.
+Kokompe is meant to eventually replace Neil's cad.py and cam.py, but it has a
+long way to go.  Kokompe has a core of efficient algorithims for rendering
+geometry described as math strings and generating toolpaths from geometry, but
+has only a rudimentary user inferface and little if any machine support.
 
-Kokompe is meant to eventually have a user-friendly web interface, so that people can work on
-designs from any net-connected machine in the world, without installing any special software,
-and have access to all of their design files, which would be stored on a remote server.
+Kokompe is meant to eventually have a user-friendly web interface, so that
+people can work on designs from any net-connected machine in the world, without
+installing any special software, and have access to all of their design files,
+which would be stored on a remote server.
 
-Kokompe is designed to address the maddening overhead involved in getting a design from 
-the point where there is a picture of it in the computer to the point where the machine 
-is actually making it.  This overhead includes, for example: toolpath contouring,
-file format conversion, mangled geometry, CAM software not knowing inside from outside,
-moving files around with USB sticks or network drives, etc.
+Kokompe is designed to address the maddening overhead involved in getting a
+design from the point where there is a picture of it in the computer to the
+point where the machine is actually making it.  This overhead includes, for
+example: toolpath contouring, file format conversion, mangled geometry, CAM
+software not knowing inside from outside, moving files around with USB sticks
+or network drives, etc.
+
+The kokompe project intends to eventually address the even more demanding
+overhead involved in getting a design from the point where you have a detailed
+notion of what it will look like to having a picture of it in the computer, in
+multiple ways, pending brilliant ideas and code.
 
 How to Build Kokompe on Linux
 -----------------------------
 
-0. Install Linux. Ubunty Gutsy is recommended, other distributions will probably work fine.
+0. Install Linux. Ubunty Gutsy is recommended, although other distributions
+   will probably work fine.
 
 1. Obtain the kokompe source.  If you are reading this document, you probably
-already have the source.  If not:
+   already have the source.  If not:
 
-apt-get install git-core git-doc gitk
-cd ~
-git clone http://kokompe.davidad.net/kokompe.git
+% apt-get install git-core git-doc gitk
+% cd ~
+% git clone http://kokompe.davidad.net/kokompe.git
 
 2. Install the necessary packages.  I hope this is a complete list, if not,
-please add any packages you discover are needed.
+   please add any packages you discover are needed.
 
-apt-get install g++ libargtable2-dev freeglut3-dev python python-dev 
+% apt-get install g++ libargtable2-dev freeglut3-dev python python-dev 
 
 3. Build Kokompe
 
-make 
+% make 
 
 4. (Optional) Install the binaries somewhere in your path
+
+TODO: Implement 'make install'
 
 
 How to Use The Command Line Interface
 -------------------------------------
 
-The Kokompe command line programs allow direct access to the engines.  They are intended to be
-called on the server by a web front end.  You can run them directly from the command line
-to test the algorithims.
+The Kokompe command line programs allow direct access to the engines.  They are
+intended to be called on the server by a web front end.  You can run them
+directly from the command line to test the algorithms.
 
-There is a directory called "test_cases" in the kokompe source directory that has a few designs
-(a teaport and some circuit boards) in various intermediate formats.  The file "usage_examples" in
-that directory shows the command line syntax to convert the files from format to format.  
+There is a directory called "test_cases" in the kokompe source directory that
+has a few designs (a teapot and some circuit boards) in various intermediate
+formats.  The file "usage_examples" in that directory shows the command line
+syntax to convert the files from format to format.  
 
 
 infix_to_postfix
@@ -66,24 +84,28 @@ infix_to_postfix
   Returns a postfix math string on stdout
 
 math_string_to_stl xmin xmax ymin ymax zmin zmax feature_size
-  Over a bounding box from (xmin, ymin, zmin) -> (zmax, ymax, zmax), evalauates the postfix
-  math string on stdin and returns binary STL on stdout.  feature_size is the smallest dimension
-  of the smallest feature, sometimes called the "minimum section size" in mechanical design.  For a given
-  bounding box, larger feature sizes result in faster rendering.  If the feature size given is too small,
-  rendering may take forever or the machine may run out of memory.
+  Over a bounding box from (xmin, ymin, zmin) -> (zmax, ymax, zmax), evaluates
+  the postfix math string on stdin and returns binary STL on stdout.
+  feature_size is the smallest dimension of the smallest feature, sometimes
+  called the "minimum section size" in mechanical design.  For a given bounding
+  box, larger feature sizes result in faster rendering.  If the feature size
+  given is too small, rendering may take forever or the machine may run out of
+  memory.
 
 math_string_slice_to_ppm xmin xmax ymin ymax zlevel feature_size
-  Over a bounding box from (xmin,xmax) -> (ymin,ymax), evaluates the postfix math string on
-  stdin and returns binary PPM on stdout.  feature_size is as above.  If the math string contains
-  only X and Y, zlevel is unimportant and may be set to 0.  If the math string contains "Z", it 
-  is evaulated at Z = zlevel
+  Over a bounding box from (xmin,xmax) -> (ymin,ymax), evaluates the postfix
+  math string on stdin and returns binary PPM on stdout.  feature_size is as
+  above.  If the math string contains only X and Y, zlevel is unimportant and
+  may be set to 0.  If the math string contains "Z", it is evaulated at Z =
+  zlevel
 
 math_string_slice_to_toolpath xmin xax ymin ymax zlevel feature_size tool_radius
-  Takes a postfix math string on stdin and returns a "Forrest-format toolpath" on stdout.  Arguments
-  descriptions are the same as math_string_slice_to_ppm.
+  Takes a postfix math string on stdin and returns a "Forrest-format toolpath"
+  on stdout.  Arguments descriptions are the same as math_string_slice_to_ppm.
 
 stl_to_ppm
-  A 3-D render. Takes binary STL on stdin and returns a ppm image from a particular viewpoint on stdout.
+  A 3-D render. Takes binary STL on stdin and returns a ppm image from a
+  particular viewpoint on stdout.
   Arguments:  (all optional)
   --roll      	Rotation of object, Roll, in degrees (?)
   --pitch	Rotation of object, Pitch, in degrees (?)
@@ -94,7 +116,8 @@ stl_to_ppm
   --width	Output image width, pixels
   --height	Output image height, pixels
   --scale	scale of the object relative to the image frame
-  --lighting	If given, use photorealistic lighting rather than default XYZ=RGB
+  --lighting	If given, use photorealistic lighting rather than default
+                XYZ=RGB
 
 
 The Intermediate Data Formats
@@ -103,26 +126,31 @@ The Intermediate Data Formats
 "Infix Math String"
 -------------------
 
-This is a mathematical string representing geometry, in ASCII format.  The string, in floating-point variables, 
-"X", "Y", and "Z", should evaluate to TRUE if the object is there and FALSE if it is not.  The string is infix,
-has Python operator precendence, and supports the following operators:
+This is a mathematical string representing geometry, in ASCII format.  The
+string, in floating-point variables, "X", "Y", and "Z", should evaluate to TRUE
+if the object is there and FALSE if it is not.  The string is infix, has Python
+operator precendence, and supports the following operators:
 +, -, *, /, =, &, |, ~, sin, cos, ** (exponent)
 
 Examples:
-A unit sphere centered at the origin:   X*X + Y*Y + Z*Z < 1
-A unit cube centered at the origin:     (X > -1) & (X < 1) & (Y > -1) & (Y < 1) * (Z>-1) & (Z <1)
+A unit sphere centered at the origin:
+    X*X + Y*Y + Z*Z < 1
+A unit cube centered at the origin:
+    (X > -1) & (X < 1) & (Y > -1) & (Y < 1) & (Z>-1) & (Z <1)
 
 "Postfix Math String"
 ---------------------
 
-A mathematical string representing geometry, but in reverse-polish notation.  All of the operators and variable 
-names are the same, but the operator "m" is used for unary minus, for disambiguation.
+A mathematical string representing geometry, but in reverse-polish notation.
+All of the operators and variable names are the same, but the operator "m" is
+used for unary minus, for disambiguation.
 
 "STL"
 -----
 
-A binary STL file, which represents the surface of an object as list of triangles in a triangulated mesh.
-This is a standard format used by 3-D printers.
+A binary STL file, which represents the surface of an object as list of
+triangles in a triangulated mesh.  This is a standard format used by 3-D
+printers.
 
 "PPM"
 ----
@@ -134,19 +162,10 @@ The Standalone Graphical Interface
 ----------------------------------
 
 Run ./kokompe
-This brings up a window running Python.  If you call "load_math_string" with a math string,
-it will render it in the window and you can zoom and spin.  The idea is that you can run 
-python scripts form here that call "load_math_string" at the end.
+This brings up a window running Python.  If you call "load_math_string" with a
+math string, it will render it in the window and you can zoom and spin.  The
+idea is that you can run python scripts form here that call "load_math_string"
+at the end.
 
-I tried running this program when writing this document but it didn't work for me. - AK 1/08
-
-
-
-
-
-
-
-
-
-
-
+I tried running this program when writing this document but it didn't work for
+me. - AK 1/08
