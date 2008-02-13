@@ -55,8 +55,19 @@ public class Vector3 {
 	
 	}
 	
+	public void clear() {
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+	}
+
 	public static Vector3 sub(Vector3 a, Vector3 b) {
 		Vector3 c = new Vector3(a.x-b.x, a.y-b.y, a.z -b.z);
+		return(c);
+	}
+	
+	public static Vector3 add(Vector3 a, Vector3 b) {
+		Vector3 c = new Vector3(a.x+b.x, a.y+b.y, a.z + b.z);
 		return(c);
 	}
 	

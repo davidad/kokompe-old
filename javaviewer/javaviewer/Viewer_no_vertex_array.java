@@ -9,16 +9,19 @@ import java.io.*;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
 
 import javax.media.opengl.*;
 import com.sun.opengl.util.*;
 import java.lang.Math;
 
-/*  Kokompe Java Viewer 0.1
- *  By Ara Knaian, 2008
- *  
- *  Originally adapted from Gears demo by Brian Paul */
+
+
+/**
+ * Viewer.java <BR>
+ * author: Brian Paul (converted to Java by Ron Cemer and Sven Goethel) <P>
+ *
+ * This version is equal to Brian Paul's version 1.2 1999/10/21
+ */
 
 public class Viewer implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener {
 	
@@ -28,11 +31,7 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     
     canvas.addGLEventListener(new Viewer());
     frame.add(canvas);
-    frame.setSize(600, 600);
-    
-    Point windowCorner = new Point(50,50);
-    frame.setLocation(windowCorner);
-    
+    frame.setSize(300, 300);
     final Animator animator = new Animator(canvas);
     frame.addWindowListener(new WindowAdapter() {
         public void windowClosing(WindowEvent e) {
@@ -51,20 +50,16 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     animator.start();
   }
 
-  private int gear1;
+  private float view_rotx = 20.0f, view_roty = 30.0f, view_rotz = 0.0f;
+  private int gear1, gear2, gear3;
+  private float angle = 0.0f;
+
   private int prevMouseX, prevMouseY;
   private boolean mouseRButtonDown = false;
   private Vector3 rotAxis;
   private float rotAngle;
   private boolean rotationSet = false;
   float viewDistance = 40.0f;
-  float windowAspectRatio = 1.0f;
-  FloatBuffer curMatrix;
-  FloatBuffer lastMatrix;
-  float zoomFactor = 1.0f;
-  boolean panSet = false;
-  Vector3 panVector = new Vector3();
-  Vector3 lastPanVector = new Vector3();
   
   private int readIntLittleEndian(DataInputStream in) throws IOException {
 	  
@@ -79,25 +74,21 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 
   }
   
+  private float readFloatLittleEndian(DataInputStream in) throws IOException {
+	  int accum = 0;
+	   for ( int shiftBy=0; shiftBy<32; shiftBy+=8 )
+	      {
+	      accum |= ( in.readByte() & 0xff ) << shiftBy;
+	      }
+	   return Float.intBitsToFloat( accum );
+	  
+  }
+  
+  
   public void init(GLAutoDrawable drawable) {
     // Use debug pipeline
     // drawable.setGL(new DebugGL(drawable.getGL()));
 
-	// ******** INITIALIZE ROTATION MATRICIES FOR ARCBALL ROTATION
-		
-	// Set up the rotation storage matricies
-	curMatrix = FloatBuffer.allocate(16);
-	lastMatrix = FloatBuffer.allocate(16);
-	// fill in the last matrix with identity
-	for(int i=0; i<16; i++) {
-		lastMatrix.put(i, 0.0f);
-	}
-	lastMatrix.put(0, 1.0f);
-	lastMatrix.put(5, 1.0f);
-	lastMatrix.put(10, 1.0f);
-	lastMatrix.put(15, 1.0f);
-	    
-	// ********** GET URL TO STL FILE TO DOWNLOAD ********************
 	  
 	// Get the URL pointing to the STL file from system.getproperties
 	// for now, it is hard-coded
@@ -112,8 +103,6 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 	if (urltext == null) {
 		urltext = defaulturl;
 	}
-
-	// ********** DOWNLOAD STL FILE *********************************
 	
 	try {
 		
@@ -138,26 +127,19 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 	System.err.println("STL file in URL contains " + numStlFacets + " facets.");
 	
 	// Read the actual facet data
-	//	 facet data is 12 floats plus a short (4*12 + 2 = 50 bytes/facet)
 	
-	int bytesToRead = numStlFacets*50;
-	byte [] facetdata = new byte[bytesToRead];  
-	int bytesRead = 0;
-	
-	while (bytesRead < bytesToRead) {
-		bytesRead += in.read(facetdata, bytesRead, bytesToRead - bytesRead);
-		System.err.println("Bytes Read: " + bytesRead);
-	}
-	
-	// Done reading URL - close connection
-    in.close();	
+	/*byte [] facetdata = new byte[numStlFacets*50];  // facet data is 12 floats
+													// plus a short (4*12 + 2 = 50)
+	int bytesRead = in.read(facetdata);
 
-    // *************** REFORMAT DATA FOR OPENGL ***************************
-    // Little Endian vs. Big Endian byte ordering, etc.
-    
+	System.err.println("bytesRead: " + bytesRead + " bytes expected: " + numStlFacets*50);
+	
+    in.close();			// Close the URL connection to the STL file          
+
     float[] normalArray = new float[numStlFacets*9];
     float[] vertexArray = new float[numStlFacets*9];
-
+    
+    
 	// Now reformat data into float arrays
     
     int byteCtr = 0;
@@ -194,8 +176,9 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
       byteCtr += 2;
       
     }
-	  
-    // ************** WRAP FLOAT ARRAYS IN FLOATBUFFER OBJECTS FOR JOGL
+	
+    System.err.println("Wrote " + vertexCtr + " floats to vertexArray");
+
     
     ByteBuffer underlyingVertexBuffer = ByteBuffer.allocateDirect(numStlFacets*9*4).order(ByteOrder.nativeOrder());
     FloatBuffer vertexBuffer = 	underlyingVertexBuffer.asFloatBuffer();   
@@ -207,72 +190,81 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     normalBuffer.put(normalArray, 0, numStlFacets*9);
     normalBuffer.position(0);
     
-      
-	// ************** SET UP TO DRAW WINDOW
+   // ByteBuffer underlyingNormalBuffer = ByteBuffer.allocateDirect(numStlFacets*4);
+    //FloatBuffer vertexBuffer = 	underlyingVertexBuffer.asFloatBuffer();   
+    //vertexBuffer.put(vertexArray, 0, numStlFacets*9);
+    
+    
+    System.err.println("Length of vertexBuffer is " + vertexBuffer.capacity());*/
+    
+	// Set up to draw window
 	
     GL gl = drawable.getGL();
 
     System.err.println("INIT GL IS: " + gl.getClass().getName());
+
     System.err.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
 
     gl.setSwapInterval(1);
 
-    
-    
-    // Position of the Light
-    float pos[] = {60.0f, 60.0f, 120.0f, 0.0f };
-    // Color of the Lighting 
-    float ambientColor[] = {0.2f, 0.2f, 0.2f, 1.0f};
-    float diffuseColor[] = {0.3f, 0.3f, 0.3f, 1.0f};
-    float specularColor[] = {0.2f, 0.2f, 0.2f, 1.0f};
-    // Color of the material
-    // Four colors for an openGL object: ambient, diffuse, specular, and emission
-    // specular and emission are fixed for the whole object, set here
-    // ambient and diffuse are set by glColor
-    float materialSpecularColor[] = {0.05f, 0.05f, 0.05f, 1.0f};  // set to 0 to diasable shadows
-    float materialEmissionColor[] = {0.0f, 0.0f, 0.0f, 1.0f};     // set to nonzero to make object glow
-    
-    // ************* SET UP OPENGLSCENE LIGHTING ****************************
-    
+    float pos[] = { 5.0f, 5.0f, 10.0f, 0.0f };
+    float red[] = { 0.8f, 0.1f, 0.0f, 1.0f };
+    float green[] = { 0.0f, 0.8f, 0.2f, 1.0f };
+    float blue[] = { 0.2f, 0.2f, 1.0f, 1.0f };
+
     gl.glLightfv(GL.GL_LIGHT0, GL.GL_POSITION, pos, 0);
-    
-    // my params
-    gl.glLightfv(GL.GL_LIGHT0, GL.GL_AMBIENT, ambientColor, 0);
-    gl.glLightfv(GL.GL_LIGHT0, GL.GL_DIFFUSE, diffuseColor, 0);
-    gl.glLightfv(GL.GL_LIGHT0, GL.GL_SPECULAR, specularColor, 0);
-    
     gl.glEnable(GL.GL_CULL_FACE);
     gl.glEnable(GL.GL_LIGHTING);
     gl.glEnable(GL.GL_LIGHT0);
     gl.glEnable(GL.GL_DEPTH_TEST);
-    gl.glEnable(GL.GL_COLOR_MATERIAL);        
             
-    // ************ CREATE A DISPLAY LIST CONTAINING THE STL OBJECT *********
-    
+    /* draw the object in the STL file */
     gear1 = gl.glGenLists(1);
     gl.glNewList(gear1, GL.GL_COMPILE);
-  //  gl.glScalef(6.0f, 6.0f, 6.0f);
+    gl.glScalef(6.0f, 6.0f, 6.0f);
+    gl.glMaterialfv(GL.GL_FRONT, GL.GL_AMBIENT_AND_DIFFUSE, red, 0);
     
-    gl.glMaterialfv(GL.GL_FRONT, GL.GL_SPECULAR, materialSpecularColor, 0);
-    gl.glMaterialfv(GL.GL_FRONT, GL.GL_EMISSION, materialEmissionColor, 0);
-    gl.glColorMaterial(GL.GL_FRONT, GL.GL_AMBIENT_AND_DIFFUSE);
-    
-    // Red object --- change here to change color - RGB
-    // (or could render color with a color array)
-    gl.glColor3f(1.0f, 1.0f, 1.0f);
-    
-    // Create vertex arrays
-    gl.glEnableClientState(GL.GL_VERTEX_ARRAY);
+    // Draw the triangles for the object from a vertex array
+    /*gl.glEnableClientState(GL.GL_VERTEX_ARRAY);
     gl.glEnableClientState(GL.GL_NORMAL_ARRAY); 
     gl.glVertexPointer(3, GL.GL_FLOAT, 0, vertexBuffer);
     gl.glNormalPointer(GL.GL_FLOAT, 0, normalBuffer);
     
-    // Draw Triangles
-    gl.glDrawArrays(GL.GL_TRIANGLES, 0, numStlFacets*3);
+    System.err.println("Got to DrawArrays.");
+    gl.glDrawArrays(GL.GL_TRIANGLES, 0, numStlFacets*3);*/
     
-    gl.glEndList();    
+       for (int i=0; i < numStlFacets; i++) {
+    			gl.glBegin(GL.GL_TRIANGLES);
+    			gl.glNormal3f(readFloatLittleEndian(in), readFloatLittleEndian(in), readFloatLittleEndian(in));
+    			gl.glVertex3f(readFloatLittleEndian(in)-10.0f, readFloatLittleEndian(in)-10.0f, readFloatLittleEndian(in)-10.0f);
+    			gl.glVertex3f(readFloatLittleEndian(in)-10.0f, readFloatLittleEndian(in)-10.0f, readFloatLittleEndian(in)-10.0f);
+    			gl.glVertex3f(readFloatLittleEndian(in)-10.0f, readFloatLittleEndian(in)-10.0f, readFloatLittleEndian(in)-10.0f);
+    			gl.glEnd();
+    			int attributeByteCount = in.readShort();
+    	    }
+    	   
+    	    gl.glEndList();
+    	    in.close();			// Close the URL connection to the STL file          
+    	   
+    	    gl.glEnable(GL.GL_NORMALIZE);
     
-    // **************** SET UP MOUSE LISTENERS *****************
+    
+    
+    
+    // Set up the rotation storage matricies
+    curMatrix = FloatBuffer.allocate(16);
+    lastMatrix = FloatBuffer.allocate(16);
+    // fill in the last matrix with identity
+    for(int i=0; i<16; i++) {
+    	lastMatrix.put(i, 0.0f);
+    }
+    lastMatrix.put(0, 1.0f);
+    lastMatrix.put(5, 1.0f);
+    lastMatrix.put(10, 1.0f);
+    lastMatrix.put(15, 1.0f);
+    
+    
+    // Set up Mouse Listeners
     
     drawable.addMouseListener(this);
     drawable.addMouseMotionListener(this);
@@ -284,19 +276,40 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		
 	}
 	catch (IOException e) {;
-		System.err.println("I/O Exception!");	
+		System.err.println("I/O Exception!");
+		
 	}
+
   }
+    
+  float windowAspectRatio = 1.0f;
   
   public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
     GL gl = drawable.getGL();
-    windowAspectRatio = (float)height / (float)width;			
+
+    float h = (float)height / (float)width;
+            
+    windowAspectRatio = h;
+    
+    gl.glMatrixMode(GL.GL_PROJECTION);
+
+    System.err.println("GL_VENDOR: " + gl.glGetString(GL.GL_VENDOR));
+    System.err.println("GL_RENDERER: " + gl.glGetString(GL.GL_RENDERER));
+    System.err.println("GL_VERSION: " + gl.glGetString(GL.GL_VERSION));
+    gl.glLoadIdentity();
+    gl.glFrustum(-1.0f, 1.0f, -h, h, 5.0f, 60.0f);
+    gl.glMatrixMode(GL.GL_MODELVIEW);
+    gl.glLoadIdentity();  					
   }
 
+  
+  FloatBuffer curMatrix;
+  FloatBuffer lastMatrix;
+  float zoomFactor = 1.0f;
+  
+  
   public void display(GLAutoDrawable drawable) {
     	
-	float viewDistance = 6.0f;
-	  
     GL gl = drawable.getGL();
     if ((drawable instanceof GLJPanel) &&
         !((GLJPanel) drawable).isOpaque() &&
@@ -309,21 +322,15 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     // Set up the projection matrix
     gl.glMatrixMode(GL.GL_PROJECTION);
     gl.glLoadIdentity();
-    gl.glOrtho(-1.0f*zoomFactor, 1.0f*zoomFactor, -windowAspectRatio*zoomFactor, windowAspectRatio*zoomFactor, viewDistance*zoomFactor - 2.0f, viewDistance*zoomFactor + 2.0f);
+    gl.glFrustum(-1.0f*zoomFactor, 1.0f*zoomFactor, -windowAspectRatio*zoomFactor, windowAspectRatio*zoomFactor, 5.0f, 60.0f);
  
    // gl.glPushMatrix();
     gl.glMatrixMode(GL.GL_MODELVIEW);
 
     // Start un-rotated
     gl.glLoadIdentity();
-    
-    // Translate first to pan object
-    gl.glTranslatef(panVector.x, panVector.y, panVector.z);
-    gl.glTranslatef(lastPanVector.x, lastPanVector.y, lastPanVector.z);
-    
-    
-   // Translate last to move the rotated object away from the viewer
-    gl.glTranslatef(0.0f, 0.0f, -viewDistance*zoomFactor);
+   // Translate last
+    gl.glTranslatef(0.0f, 0.0f, -40.0f*zoomFactor);
     
     // Current rotation
     if (rotationSet) {
@@ -340,9 +347,9 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     gl.glCallList(gear1);
    // gl.glPopMatrix();       
   }
-  
-  // Methods required for the implementation of MouseListener
+
   public void displayChanged(GLAutoDrawable drawable, boolean modeChanged, boolean deviceChanged) {}
+  // Methods required for the implementation of MouseListener
   public void mouseEntered(MouseEvent e) {}
   public void mouseExited(MouseEvent e) {}
 
@@ -375,12 +382,6 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     lastMatrix.put(14, 0.0f);
     lastMatrix.put(15, 1.0f); 
     rotAngle = 0.0f;  // once the mouse goes up, rotation is over
-    
-    // update the pan vector base
-    lastPanVector = Vector3.add(lastPanVector, panVector);
-    // Panning stops when mouse is released
-    panVector.clear();
-    
   }
     
   public void mouseClicked(MouseEvent e) {}
@@ -391,46 +392,50 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     int y = e.getY();
     Dimension size = e.getComponent().getSize();
 
+    Vector3 lastPoint = new Vector3();
+    Vector3 curPoint = new Vector3();
+    lastPoint.setArcballPos(prevMouseX, prevMouseY, size.width, size.height);
+    curPoint.setArcballPos(x, y, size.width, size.height);
+    Vector3 arcBallVector = Vector3.sub(curPoint, lastPoint);
     
-    
-    if (mouseRButtonDown) {
-    	// If right button is down, pan
-    	panVector.x = 2.0f * zoomFactor * ((float)x - (float)prevMouseX) / ( (float)size.width );
-    	panVector.y = 2.0f * zoomFactor * ((float)prevMouseY - (float)y) / ( (float)size.height );
-    	panVector.z = 0.0f;
-    	panSet = true;
-    }
-    else
-    {
-    	// othwise, rotate
-    
-    	Vector3 lastPoint = new Vector3();
-    	Vector3 curPoint = new Vector3();
-    	lastPoint.setArcballPos(prevMouseX, prevMouseY, size.width, size.height);
-    	curPoint.setArcballPos(x, y, size.width, size.height);
-    	Vector3 arcBallVector = Vector3.sub(curPoint, lastPoint);
-    
-    	float scale_factor = 180.0f * zoomFactor;
-    	rotAngle = arcBallVector.length() * scale_factor;
-    	rotAxis = Vector3.cross(lastPoint, curPoint);
-    	rotAxis.normalize();
-    	rotationSet = true;
-    }
+    float scale_factor = 180.0f;
+    rotAngle = arcBallVector.length() * scale_factor;
+    rotAxis = Vector3.cross(lastPoint, curPoint);
+    rotAxis.normalize();
+    rotationSet = true;
   }
     
   public void mouseMoved(MouseEvent e) {}
-
+  
+  float zoomX = 0.0f; 
+  float zoomY = 0.0f;
+  
   public void mouseWheelMoved(MouseWheelEvent e) {
       int notches = e.getWheelRotation();
       int x = e.getX();
       int y = e.getY();
       Dimension size = e.getComponent().getSize();
 
+      System.err.println("Mouse wheel moved " + notches + " notches");
+      float units_per_notch = 1.0f;
       if (notches > 0)
     	  zoomFactor *= 1.1;
       else
     	  zoomFactor /= 1.1;
-  
+
+      //zoomX = (x - size.width)/size.width;
+      
+      
+      
+      //viewDistance += units_per_notch*(float)notches;
+      
+      //if (viewDistance > 80.0f)
+      //	viewDistance = 80.0f;
+      //if (viewDistance < 0.0f)
+    //	  viewDistance = 0.0f;
+      
+//      System.err.println("viewDistance is " + viewDistance);
+      
   }
 }
 
