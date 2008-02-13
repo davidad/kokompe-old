@@ -120,6 +120,12 @@ stl_to_ppm
                 XYZ=RGB
 
 
+How to Use the Java STL Viewer
+-----------------------------
+
+See javaviewer directory README file.
+
+
 The Intermediate Data Formats
 -----------------------------
 

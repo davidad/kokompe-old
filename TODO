@@ -2,11 +2,60 @@ FEATURE REQUESTS
 ----------------
 
 
+SHORT-TERM MUST DO
+==================
+
+1. All-the-way-through working UI to go from Python .CAD to 
+rendered 3D images.  (web PHP?)
+
+2. All-the-way-through UI to do the same for 2D geometry. (web PHP?)
+
+3. Toolpath generation for 2-D tools.
+  (apparently the grassfire toolpath algorithim has a fatal flaw?)  
+
+4. Output to laser cutter, waterjet, etc. ported from cad.py
+
+5. Clear documentation of all build dependencies --- procedure
+to build from scratch.
+
+6. Get web interface (amy PHP) into version control.
+
+LONGER-TERM 
+===========
+
+1. Color rendering of objects with multivalued math string?
+
+2. Differentiate math string to explicitly get surface normals,
+   explicitly reconginize surfaces, etc.  This could be for
+   increased evaluation speed, smaller/more accurate 3D models,
+   ability to click edges, etc.
+
+3. Hybrid program combining clicking to more anchor points with writing 
+   code to describe objects that allows high-speed circuit board routing
+   and artistic playing but also allows arbitrary shape generation through
+   code and easy automation of tasks through code, and documents the
+   whole object in human-readable text.  (Forrest has a good plan.)
+
+4. Add a parametric variable, t, ranging from [0,1], and a syntax where
+   the object gets rendered everywhere the expression is true for any 
+   value of t.  This would allow spirals, extrusion of 2-D geometries
+   along 3-D linear paths, etc. which are not currently possible with 
+   the implicit function format.
 
 BUGS
 ----
 
-1. math_string_to_stl fails on the "sphere" test case with
-a segmentation fault.  Added by AK, 2/12/08
+1. trimesh: Corner finder doesn't always work, resulting in little 
+inclusions along corners.  Is it getting the inside/outside
+direction wrong?  Try coloring corners to see...
+
+
+2. trimesh: Rendering on a non-cubic region causes a bizzare directional 
+incorrect-noral artifact.  This is clearly visbile rendering
+the unit sphere on -.5 .5 -1 1 -1 1.  A short term workaround
+is to always use cubic regions: this isn't much of a performance hit,
+due to the octree.  Longer term, we should find out why---this may
+point the way to other bugs.
+
 
 
