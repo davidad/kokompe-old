@@ -37,7 +37,7 @@ float read_argf(char ** argv, int arg) {
 
   temp = atof(argv[arg]);
   if (errno) {
-    cout << "Error parsing floating point value '" << argv[arg] << "'\n";
+    cerr << "Error parsing floating point value '" << argv[arg] << "'\n";
     print_usage();
     exit(2);
   }
@@ -70,8 +70,6 @@ int main(int argc, char** argv) {
     renderlevel = atoi(argv[8]);
   }
 
-  //cerr << "Got renderlevel " << renderlevel << "\n";
-
   // Gobble input until EOF is reached
   while (getline(cin, inputline)) {
       math_string += inputline;
@@ -87,7 +85,7 @@ int main(int argc, char** argv) {
   float maxlen = max(xlen, ylen, zlen);
   
   if ((xlen <= 0) || (ylen <= 0) || (zlen <= 0) || (min_feature <= 0)) {
-    cout << "Must evaluate over a 3-D region with finite precsision.\n";
+    cerr << "Must evaluate over a 3-D region with finite precsision.\n";
     exit(3);
   }
 
@@ -122,15 +120,15 @@ int main(int argc, char** argv) {
   else if (nz > 10000)
     nz = 10000;
 
-  //cout << "nx: " << nx << " ny: " << ny << " nz: " << nz << " recursion_depth: " << recursion_depth << "\n";
+  //cerr << "nx: " << nx << " ny: " << ny << " nz: " << nz << " recursion_depth: " << recursion_depth << "\n";
 
 
   // Create abstract syntax tree
-  //cout << "Creating math string.\n";
+  //cerr << "Creating math string.\n";
   expression_t ex(math_string);
 
   // Create intervals
-  //cout << "Creating intervals.\n";
+  //cerr << "Creating intervals.\n";
   interval_t x,y,z;
   x.set_real_interval((float)xmin,(float)xmax);
   y.set_real_interval((float)ymin,(float)ymax);
@@ -138,26 +136,26 @@ int main(int argc, char** argv) {
   space_interval_t si(x,y,z);
 
   // Construct and evaluate octree.
-  //cout << "Creating octree.\n";
+  //cerr << "Creating octree.\n";
   octree_t octree(ex, si);
   octree.eval(recursion_depth);
 
   // Create and evaluate a trimesh
   trimesh_t trimesh;
-  //cout << "Populating trimesh.\n";
+  //cerr << "Populating trimesh.\n";
   trimesh.populate(&octree,&si, nx, ny, nz);  
   if (renderlevel >= 1) {
-    //cout << "Refining trimesh.\n";  
+    //cerr << "Refining trimesh.\n";  
     trimesh.refine();
   }
   if (renderlevel >= 2) {
-    //cout << "Marking triangles near edges and corners.\n";
+    //cerr << "Marking triangles near edges and corners.\n";
     trimesh.mark_triangles_needing_division();
-    //cout << "Adding centroid to determine inside from outside.\n";
+    //cerr << "Adding centroid to determine inside from outside.\n";
     trimesh.add_centroid_to_object_distance();
-    //cout << "Moving verticies toward corners.\n";
+    //cerr << "Moving verticies toward corners.\n";
     trimesh.move_verticies_toward_corners();
-    //cout << "Recalculating normals.\n";
+    //cerr << "Recalculating normals.\n";
     trimesh.recalculate_normals();
   }  
 
@@ -165,15 +163,15 @@ int main(int argc, char** argv) {
    int stl_length;
    
   // Fill STL data
-  //cout << "Filling STL.\n";
+  //cerr << "Filling STL.\n";
    trimesh.fill_stl(&stl, &stl_length);
   
   // Write STL data to stdout
-  //cout << "Writing to STDOUT.\n";
-   cout.write(stl, stl_length);
-  //cout << "Deleting stl.\n";
-   delete(stl);
-  //cout << "All done.\n";
+  //cerr << "Writing to STDOUT.\n";
+  cout.write(stl, stl_length);
+   //cerr << "Deleting stl.\n";
+  delete(stl);
+  //cerr << "All done.\n";
 
   return(0);  
 }

@@ -838,15 +838,17 @@ void trimesh_t::recalculate_normals() {
 	
 		// Do ratio test
 		if (!ratio_test(new_verticies, &dummy)) {	
-			// If this triangle fails the test, search edge neighbors
-			// for one that passes
-			j++;
-			for(edge = 0; edge < 3; edge++) {
-				for (i=0; i<3; i++) 
-					new_verticies[i] = *(*triangle_iterator)->neighbors[edge]->verticies[i];				
-				if (ratio_test(new_verticies, &dummy)) 
-					break;
-			}
+		  // If this triangle fails the test, search edge neighbors
+		  // for one that passes
+		  j++;
+		  for(edge = 0; edge < 3; edge++) {
+		    if (((*triangle_iterator)->neighbors[edge]) != NULL) {		   
+		      for (i=0; i<3; i++)  
+			new_verticies[i] = *(*triangle_iterator)->neighbors[edge]->verticies[i];
+		      if (ratio_test(new_verticies, &dummy)) 
+			break;
+		    }  
+		  }
 		} 
 		// Compute normal from cross product of edge vectors
 		(**triangle_iterator).normal = normalize(cross(sub(new_verticies[1],new_verticies[0]), sub(new_verticies[2], new_verticies[0])));
