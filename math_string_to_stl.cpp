@@ -24,9 +24,11 @@ float max(float a, float b, float c) {
 }
 
 void print_usage() {
-  cout << "Usage: math_string_to_stl xmin xmax ymin ymax zmin zmax min_feature\n";
+  cout << "Usage: math_string_to_stl xmin xmax ymin ymax zmin zmax min_feature renderlevel\n";
   cout << "Takes postfix math string on stdin.\n";
   cout << "Returns binary STL on stdout.\n";
+  cout << "min_feature is minimum feature size, floating point.\n";
+  cout << "renderlevel = 0 for block-object, 1 for smooth surfaces, 2 for smooth surfaces and sharp edges";
 }
 
 
@@ -49,10 +51,11 @@ int main(int argc, char** argv) {
   string inputline;
   float min_feature;
   float xmin, xmax, ymin, ymax, zmin, zmax;
+  int renderlevel = 2;
   
   // Read in command line arguments
-  if (argc != 8) {
-    cout << "Wrong number of arguments, got " << argc-1 << " expecting 7.\n";
+  if (argc <= 7) {
+    cerr << "Wrong number of arguments, got " << argc-1 << " expecting 7 or 8.\n";
     print_usage();
     exit(1);
   }
@@ -63,14 +66,17 @@ int main(int argc, char** argv) {
   zmin = read_argf(argv, 5);
   zmax = read_argf(argv, 6);
   min_feature = read_argf(argv, 7);
+  if (argc >= 9) {
+    renderlevel = atoi(argv[8]);
+  }
 
+  //cerr << "Got renderlevel " << renderlevel << "\n";
 
   // Gobble input until EOF is reached
   while (getline(cin, inputline)) {
       math_string += inputline;
   }  
 
-  
   /* Do the work */
 
   // Compute the required recursion depth and number of points per side
@@ -139,21 +145,25 @@ int main(int argc, char** argv) {
   // Create and evaluate a trimesh
   trimesh_t trimesh;
   //cout << "Populating trimesh.\n";
-  trimesh.populate(&octree,&si, nx, ny, nz);
-  //cout << "Refining trimesh.\n";
-  trimesh.refine();
-  //cout << "Marking triangles.\n";
-  trimesh.mark_triangles_needing_division();
-  //cout << "Adding centroid.\n";
-  trimesh.add_centroid_to_object_distance();
-  //cout << "Moving verticies toward corners.\n";
-  trimesh.move_verticies_toward_corners();
-  //cout << "Recalculating normals.\n";
-  trimesh.recalculate_normals();
+  trimesh.populate(&octree,&si, nx, ny, nz);  
+  if (renderlevel >= 1) {
+    //cout << "Refining trimesh.\n";  
+    trimesh.refine();
+  }
+  if (renderlevel >= 2) {
+    //cout << "Marking triangles near edges and corners.\n";
+    trimesh.mark_triangles_needing_division();
+    //cout << "Adding centroid to determine inside from outside.\n";
+    trimesh.add_centroid_to_object_distance();
+    //cout << "Moving verticies toward corners.\n";
+    trimesh.move_verticies_toward_corners();
+    //cout << "Recalculating normals.\n";
+    trimesh.recalculate_normals();
+  }  
 
    char *stl;
-  int stl_length;
-
+   int stl_length;
+   
   // Fill STL data
   //cout << "Filling STL.\n";
    trimesh.fill_stl(&stl, &stl_length);
