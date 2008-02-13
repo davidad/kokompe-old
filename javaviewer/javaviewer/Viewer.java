@@ -217,8 +217,6 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 
     gl.setSwapInterval(1);
 
-    
-    
     // Position of the Light
     float pos[] = {60.0f, 60.0f, 120.0f, 0.0f };
     // Color of the Lighting 
@@ -259,7 +257,7 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     
     // Red object --- change here to change color - RGB
     // (or could render color with a color array)
-    gl.glColor3f(1.0f, 1.0f, 1.0f);
+    gl.glColor3f(1.0f, 0.0f, 0.0f);
     
     // Create vertex arrays
     gl.glEnableClientState(GL.GL_VERTEX_ARRAY);
