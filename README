@@ -144,6 +144,10 @@ A unit sphere centered at the origin:
 A unit cube centered at the origin:
     (X > -1) & (X < 1) & (Y > -1) & (Y < 1) & (Z>-1) & (Z <1)
 
+Caveat:
+Arbitrary powers, other than 2, are not currently supported, but
+are on the TODO list and could be added if there is interest.
+
 "Postfix Math String"
 ---------------------
 

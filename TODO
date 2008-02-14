@@ -42,6 +42,16 @@ LONGER-TERM
    along 3-D linear paths, etc. which are not currently possible with 
    the implicit function format.
 
+5. Improved expression support: Support for powers other than 2, 
+   exp, and ln functions.  (and automatic differention of these
+   functions.)  Because ln and power are undefined on some ranges,
+   this might be slightly tricky, but we can probably do something
+   sensible.  (right now we deal with the same problem that / is
+   undefined if the denominator is 0 with no problems --- one approach
+   would be to explicitly introduce branch cuts into expressions
+   where the function might be undefined by modifying the math string
+   with booleans; e.g. ln(x^2) > 4  -->  (x^2 > 0) & ( ln(x^2) > 4 )
+
 BUGS
 ----
 
