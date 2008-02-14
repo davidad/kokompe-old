@@ -16,17 +16,24 @@ private:
   int num_children;
   int var;
     //int lazy;  
+  void build_children(int num_children_in); 
 
 public:
+  expression_t();
   expression_t(int num_children_in);
   expression_t(const expression_t &a);
   expression_t(string postfix);
   ~expression_t();
   interval_t eval(space_interval_t &vars);
   interval_t prune(space_interval_t &vars, int do_prune, int *would_prune, int child_num, expression_t *parent);
-
+  void derivative(expression_t *in_expression, int d_var);
+  friend ostream& operator<<(ostream &s, const expression_t &expr);
 
 };
+
+ostream& operator<<(ostream &s, const expression_t &expr);
+
+
 
 string convert_infix_to_postfix(string infix);
 

@@ -82,6 +82,14 @@ static const int var_code[] = {0, 1, 2, 0, 1, 2};
 // lightning-fast evaluation and pruning as we descend into the octree.
 
 
+// Plain Constructor (used when taking derivatives)
+expression_t::expression_t() {
+	num_children = 0;
+	children = NULL;
+	evaluator = NULL;
+	var = -1;
+}
+
 // Basic Internal Constructor
 expression_t::expression_t(int num_children_in) {
   num_children = num_children_in;
@@ -537,6 +545,221 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
   return(null_interval);
 }
 
+void expression_t::build_children(int num_children_in) {
+	num_children = num_children_in;
+	children = new expression_t*[num_children_in];	
+	for(int i=0; i < num_children_in; i++)
+		children[i] = new expression_t();
+
+}
+
+/** Derivative
+  * This method sets an empty expression to the symbolic derivative of the supplied expression_in, 
+	with respect to the variable with code var 
+	(This is used to find surface normals to the object)
+
+	THIS METHOD ASSUMES AN EMPTY EXPRESSION, FOR NOW.  WOULD BE EASY TO FIX. */
+
+
+void expression_t::derivative(expression_t *expression_in, int d_var) {
+	cout << "starting derivative";
+	if (expression_in->num_children == 0) {
+		// Not an operator --- either a variable or constant
+			// If it is the differention variable, the derivative is 1 --- for any other variable or constant, it is 0.
+			cout << "expression_in -> var " << expression_in->var << " d_var " << d_var << endl;
+
+			if (expression_in->var == d_var) 
+				data.set_real_number(1.0f);
+			else
+				data.set_real_number(0.0f);
+			var = -1;
+	}
+	else {
+		cout << "found operator";
+		// Derivative of an operator expression
+		if ((expression_in->evaluator) == &(interval_t::add)) {
+			// ADDITION
+			// Derivative of a sum is the sum of the derivatives
+			evaluator = &(interval_t::add); 	
+			build_children(2);
+			children[0]->derivative(expression_in->children[0], d_var);
+			children[1]->derivative(expression_in->children[1], d_var);
+
+		}
+		// For our purposes in finding normals, greater than, less than, and equals
+		// all have a derivative equivilent to MINUS
+		else if (((expression_in->evaluator) == &(interval_t::sub)) ||
+				 ((expression_in->evaluator) == &(interval_t::greater_than)) ||
+				 ((expression_in->evaluator) == &(interval_t::less_than)) ||
+				 ((expression_in->evaluator) == &(interval_t::equals)) ||
+				 ((expression_in->evaluator) == &(interval_t::less_than_or_equals)) ||
+				 ((expression_in->evaluator) == &(interval_t::greater_than_or_equals))) {
+			// SUBTRACTION
+			// Derivative of a difference is the difference of the derivatives
+			evaluator = &(interval_t::sub);
+			build_children(2);
+			children[0]->derivative(expression_in->children[0], d_var);
+			children[1]->derivative(expression_in->children[1], d_var);
+		}
+		else if ((expression_in->evaluator) == &(interval_t::mul)) {
+			// MULTIPLICATION
+			// Product rule
+			evaluator = &(interval_t::add);
+			build_children(2);
+			
+			children[0]->evaluator = &(interval_t::mul);
+			children[0]->num_children = 2;
+			children[0]->children = new expression_t*[2];	
+			children[0]->children[0] = new expression_t(*expression_in->children[0]);		// copy left arg
+			children[0]->children[1] = new expression_t();
+			children[0]->children[1]->derivative(expression_in->children[1], d_var);		// derivative of right arg
+
+			children[1]->evaluator = &(interval_t::mul);
+			children[1]->num_children = 2;
+			children[1]->children = new expression_t*[2];
+			children[1]->children[0] = new expression_t(*expression_in->children[1]);		// copy right arg
+			children[1]->children[1] = new expression_t();
+			children[1]->children[1]->derivative(expression_in->children[0], d_var);		// derivative of left arg
+		}
+
+		else if ((expression_in->evaluator) == &(interval_t::div)) {
+			// DIVISION
+			// Quotient rule
+			evaluator = &(interval_t::div);
+			build_children(2);
+
+			children[0]->evaluator = &(interval_t::sub);
+			children[0]->build_children(2);
+			
+			children[0]->children[0]->evaluator = &(interval_t::mul);
+			children[0]->children[0]->num_children = 2;
+			children[0]->children[0]->children = new expression_t*[2];	
+			children[0]->children[0]->children[0] = new expression_t(*expression_in->children[1]);		// copy demominator
+			children[0]->children[0]->children[1] = new expression_t();
+			children[0]->children[0]->children[1]->derivative(expression_in->children[0], d_var);		// derivative of numerator
+
+			children[0]->children[1]->evaluator = &(interval_t::mul);
+			children[0]->children[1]->num_children = 2;
+			children[0]->children[1]->children = new expression_t*[2];	
+			children[0]->children[1]->children[0] = new expression_t(*expression_in->children[0]);		// copy numerator
+			children[0]->children[1]->children[1] = new expression_t();
+			children[0]->children[1]->children[1]->derivative(expression_in->children[1], d_var);		// derivative of denominator
+
+			children[1]->evaluator = &(interval_t::power);
+			children[1]->num_children = 2;
+			children[1]->children = new expression_t*[2];
+			children[1]->children[0] = new expression_t(*expression_in->children[1]);					// copy denomiator
+			children[1]->children[1] = new expression_t();
+			children[1]->children[1]->data.set_real_number(2.0f);										// squared
+		}
+		else if ((expression_in->evaluator) == &(interval_t::power)) {
+			// For powers involving differntion variables, this is tricky.
+			// Using x^y = e ^ (ln(x)*y) , I think that the answer is,
+			// for general functions x,y, possibly involving the differention variable:
+			// deriv(x^y) = e^(ln(x)y)*( (x'*y/x) + ln(x)*y' )
+			// This reduces to the right answer, y*x^(y-1)*x' for y contant, and 
+			// to the right answer for x^x, which is commonly tabulated.
+
+			// However, interval_t does not support powers other than constant 2 anyway.
+			// So I will leave support for arbitrary powers (both here and in interval_t) as a TODO,
+			// and just say that x^2 = 2*x*x', and give an error otherwise.  At the same time
+			// we will need to bring in support for ln and exp
+ 
+			// y = x^2
+			// y' = 2*x*x'
+
+			if ((expression_in->children[1]->data.get_lower() == 2.0f) && (expression_in->children[1]->data.get_upper() == 2.0f)) {
+				evaluator = &(interval_t::mul);
+				build_children(2);
+				children[0]->data.set_real_number(2.0f);
+				children[1]->evaluator = &(interval_t::mul);
+				children[1]->num_children = 2;
+				children[1]->children = new expression_t*[2];	
+				children[1]->children[0] = new expression_t(*expression_in->children[0]);		// copy left arg
+				children[1]->children[1] = new expression_t();
+				children[1]->children[1]->derivative(expression_in->children[0], d_var);		// derivative of left arg
+			}
+			else {
+				cout << "Error: Derivative of a power other than 2.  Powers other than 2 not supported." << endl;	
+				exit(232);
+			}
+		}
+		else if ((expression_in->evaluator) == &(interval_t::sin)) {
+			// SINE
+			// Derivative of sine is cosine of same argument, times derivative of argument
+			evaluator = &(interval_t::mul);
+			build_children(2);
+
+			children[0]->evaluator = &(interval_t::cos);
+			children[0]->num_children = 1;
+			children[0]->children = new expression_t*[1];
+			children[0]->children[0] = new expression_t(*expression_in->children[0]);   // copy arg for cos arg
+			
+			children[1]->derivative(expression_in->children[0], d_var);
+		}
+		else if ((expression_in->evaluator) == &(interval_t::cos)) {
+			// COSINE
+			// Derivative of cosine is negative sine of same argument, times derivative of argument
+	
+			evaluator = &(interval_t::unary_minus);
+			build_children(1);
+
+			children[0]->evaluator = &(interval_t::mul);
+			children[0]->build_children(2);
+
+			children[0]->children[0]->evaluator = &(interval_t::sin);
+			children[0]->children[0]->num_children = 1;
+			children[0]->children[0]->children = new expression_t*[1];
+			children[0]->children[0]->children[0] = new expression_t(*expression_in->children[0]);   // copy arg for cos arg
+			
+			children[0]->children[1]->derivative(expression_in->children[0], d_var);
+		}
+		else if ((expression_in->evaluator) == &(interval_t::sqrt)) {
+			// SQUARE ROOT
+			// Derivative of square root is 0.5 * x'/sqrt(x)
+
+			evaluator = &(interval_t::mul);
+			build_children(2);
+
+			children[0]->data.set_real_number(0.5f);													// multiply by 0.5
+
+			children[1]->build_children(2);
+			children[1]->evaluator = &(interval_t::div);
+			children[1]->children[0]->derivative(expression_in->children[0], d_var);					// chain rule - mul by deriv of arg
+			
+			children[1]->children[1]->num_children = 1;
+			children[1]->children[1]->children = new expression_t*[0];
+			children[1]->children[1]->evaluator = &(interval_t::sqrt);
+			children[1]->children[1]->children[0] = new expression_t(*expression_in->children[0]);		// copy arg into sqrt
+		}
+		else {
+			// If unknown, set to 0. (HACK FOR NOW !!!!!)
+			data.set_real_number(0.0f);
+			var = -1;
+		}
+	}
+}
+
+
+ostream& operator<< (ostream &s, const expression_t &expr) {
+	if (expr.num_children == 0) {
+		if (expr.var == -1)
+			return(s << expr.data);
+		else
+			return(s << var_name[expr.var]);
+	}
+	else {
+		for (int i=0; i< fcn_num; i++) {
+			if (fcn_evaluator[i] == expr.evaluator) {
+				if ((fcn_args[i]) == 1)
+					return(s << " " << fcn_name[i] << " ( " << *expr.children[0] << " ) ");
+				else
+					return(s << " ( " << *expr.children[0] << " ) " << fcn_name[i] << " ( " << *expr.children[1] << " ) "); 
+			}
+		}
+		return(s);
+	}
+}
 
 
 void add_token(list<string> &token_list, const string &token) {
