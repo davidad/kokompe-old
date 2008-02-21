@@ -38,7 +38,7 @@ using namespace std;
       for(int i=0; i<8; i++) {
         delete children[i];
       }
-      delete children;
+      delete []children;
     }
   }
 
@@ -106,7 +106,7 @@ using namespace std;
           for (i=0; i<8; i++) {
             delete children[i];
           }
-          delete children;
+          delete []children;
         }
         
         children = new octree_t*[8];
@@ -157,8 +157,8 @@ int octree_t::eval_at_point(float x, float y, float z) {
 	  // we need to drill down, check this leaf node first.  (Because this function
 	  // is often repeatedly called inside a line search with almost identical 
 	  // values from iteration to iteration.)
-
-	  if (zone_hint != NULL) {
+// checking to see if zone hint is causing problems --- uncomment 
+	/*  if (zone_hint != NULL) {
 		  if (zone_hint->space_interval.is_on(x,y,z)) {
 			return(zone_hint->eval_at_point(x,y,z));
 		  }
@@ -167,10 +167,86 @@ int octree_t::eval_at_point(float x, float y, float z) {
 		  }
 	  }
 	  else {
-	  }
+	  }*/
 	  return(children[space_interval.get_zone(x,y,z)]->eval_at_point(x, y, z));
   }
 }
+
+// Evaluate an expression at TWO points (assumed to be very close together)
+// and find a clause of the expression which is different between the points.
+// If all clauses are identical, returns -1.  
+
+// This method does the following:
+//  1. Find the smallest octree region that contains both points.
+//  2. Rebuild the clause table for the expression there if it does not exist / is dirty
+//  3. Evaluate each expression in the clause table at both points and note if there is a difference
+//
+
+// This implementation assumes that the points are on the octree zone specified, and also
+// that the result of the expression is different at the points
+
+// FEATURE REQUEST:  This function should make use of the ZONE HINT from eval_at_point,
+// since usually that zone will be the zone we want! (would improve speed)
+
+int octree_t::differential_eval(float x1, float y1, float z1, float x2, float y2, float z2) {
+	int zone1, zone2;
+
+	if (children != NULL) {
+		zone1 = space_interval.get_zone(x1,y1,z1);
+		zone2 = space_interval.get_zone(x2,y2,z2);
+	}
+
+	if ((children == NULL) || (zone1 != zone2)) {
+		// We are in the smallest applicable octree region; work here
+		int clause = -1;
+
+		// Verify the integrity of the clause table -- rebuild if dirty or not present
+		if (expression->clause_table == NULL) {
+			expression->create_clause_table();
+		}
+		else if (expression->clause_table->dirty) {
+			expression->create_clause_table();		
+		}
+
+		space_interval_t p1;
+		space_interval_t p2;
+		p1.set_point(x1,y1,z1);
+		p2.set_point(x2,y2,z2);
+		
+		// Evaluate each clause of the expression
+		int num_clauses = expression->clause_table->num_clauses;
+		interval_t v1;
+		interval_t v2;
+		
+		int unequal_count = 0;
+		for(int i=0; i<num_clauses; i++) {
+			v1 = expression->clause_table->clauses[i]->eval(p1);
+			v2 = expression->clause_table->clauses[i]->eval(p2);
+			if ((v1.get_boolean() != v2.get_boolean())) {
+				// we found an unequal clause
+				clause = expression->clause_table->clauses[i]->clause_number;
+				unequal_count++;
+			}
+		}
+		//if (clause == -1) {
+		//	cout << "no unequal clause found!!!" << endl;
+		//}
+		if (unequal_count > 1) {
+		//	cout << "found " << unequal_count << " unequal clauses!" << endl;
+	    // This case (rare, but happens) could be addressed with a Sat-Solver
+		// type algorithim to check to see which of the unequal clauses actually
+		// changes the value of the expression --- given a proper representation
+		// of the boolean part of the expression, could be fast.
+			clause = -1;
+		}
+		return(clause);
+	}
+	else {
+		return(children[zone1]->differential_eval(x1,y1,z1,x2,y2,z2));
+	}
+}
+
+
 
 void octree_t::eval_on_grid_core(eval_info_t *eval_info) {
   int i;
@@ -209,17 +285,6 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
   space_interval_t eval_point;
   float X, Y, Z;
 
-  //  cout << "eval zone.\n";
-
-  // no action needed for known false zones, since the array
-  // is already initialized to zeros
-  
-  // cout << value << "\n";
-
-    if (value.is_true() || value.is_mixed()) {
-  
-      //  cout << "passed value test.\n";
-  
     // Find rectangular block zone of array corresponding to this area
     
     for(i=0; i<3; i++) {
@@ -249,14 +314,6 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
       start_point[i] = eval_interval.get_lower() + 0.5f*eval_info->step[i] + start_index[i]*eval_info->step[i];
       
     }
-    
-    //cout << start_index[0] << " " << start_index[1] << " " << start_index[2] << "\n";
-    //cout << start_point[0] << " " << start_point[1] << " " << start_point[2] << "\n";
-    //cout << num_pts[0] << " " << num_pts[1] << " " << num_pts[2] << "\n";
-
-    //cout << eval_info->step[0] << " " << eval_info->step[1] << " " << eval_info->step[2] << "\n";
-
-
 
     int ystart, zstart;
     // Compute the x, y, and z stride for the array inside the evaluation loop
@@ -267,6 +324,36 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
     // Compute the first linear index into the array
     index = start_index[2]*eval_info->n[0]*eval_info->n[1] + start_index[1]*eval_info->n[0] + start_index[0];
     
+	// Write the coordinates to use for evaluation
+	// This is done ONCE, HERE, and then the exact floating
+	// point values from here are used throughout --- if the values
+	// are regenerated later, roundoff errors can cause incorrect voxels
+	// to be filled, leading to logic bugs and bad rendering artifacts
+    if (eval_info->result_points != NULL) {
+    Z = start_point[2];                                           
+      zstart = index;
+      for (zi=0; zi < num_pts[2]; zi++) { 
+        Y = start_point[1];
+        ystart = zstart;
+        for (yi=0; yi < num_pts[1]; yi++) { 
+          X = start_point[0];
+          index = ystart;
+          for (xi=0; xi < num_pts[0]; xi++) {        
+              eval_info->result_points[index].set(X,Y,Z);         
+            index += xstride;
+            X += eval_info->step[0];
+          }
+          ystart += ystride;
+          Y += eval_info->step[1];
+        }
+        zstart += zstride;
+        Z += eval_info->step[2];
+      }
+    }
+
+    // Compute the first linear index into the array
+    index = start_index[2]*eval_info->n[0]*eval_info->n[1] + start_index[1]*eval_info->n[0] + start_index[0];
+
     if (value.is_true()) {
       // If this octree zone is guaranteed to be true, just fill the array
       // with ones in a tight loop
@@ -288,8 +375,8 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
         zstart += zstride;
       }
     }
-    
-    else {
+     
+    else if (value.is_mixed()) {
       // If this octree section is mixed, evaluate the expression at each
       // point and store the result
       
@@ -306,8 +393,7 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
             eval_point.set_point(X, Y, Z);
             //cout << "writing index " << index << "\n";
               eval_info->results[index] = (char)((expression->eval(eval_point)).get_boolean());
-            
-           
+                       
             index += xstride;
             X += eval_info->step[0];
           }
@@ -318,11 +404,11 @@ void octree_t::eval_zone_on_grid(eval_info_t *eval_info) {
         Z += eval_info->step[2];
       }
     }
-    } 
+   // } 
 }
 
 
-void octree_t::eval_on_grid(space_interval_t &eval_interval, int nx, int ny, int nz, char *results) {
+void octree_t::eval_on_grid(space_interval_t &eval_interval, int nx, int ny, int nz, char *results, vector_t *result_points ) {
   eval_info_t eval_info;
   int i;
   
@@ -339,6 +425,7 @@ void octree_t::eval_on_grid(space_interval_t &eval_interval, int nx, int ny, int
     eval_info.step_recip[i] = 1/(eval_info.step[i]);
   }
   eval_info.results = results;
+  eval_info.result_points = result_points;
   
   // Initialize array to zeros
   for(i=0; i<(nx*ny*nz); i++) {

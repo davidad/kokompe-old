@@ -23,20 +23,21 @@ to build from scratch.
 LONGER-TERM 
 ===========
 
+1. Fix problems with single-triangle inclusion errors in rendered 
+   object.  Is a SAT solver needed to make sure all verticies are
+   classified to a point?  Or is there a simpler logic bug or 
+   floating point roundoff error that results in points getting
+   misclasified?
+
 1. Color rendering of objects with multivalued math string?
 
-2. Differentiate math string to explicitly get surface normals,
-   explicitly reconginize surfaces, etc.  This could be for
-   increased evaluation speed, smaller/more accurate 3D models,
-   ability to click edges, etc.
-
-3. Hybrid program combining clicking to more anchor points with writing 
+2. Hybrid program combining clicking to more anchor points with writing 
    code to describe objects that allows high-speed circuit board routing
    and artistic playing but also allows arbitrary shape generation through
    code and easy automation of tasks through code, and documents the
    whole object in human-readable text.  (Forrest has a good plan.)
 
-4. Add a parametric variable, t, ranging from [0,1], and a syntax where
+3. Add a parametric variable, t, ranging from [0,1], and a syntax where
    the object gets rendered everywhere the expression is true for any 
    value of t.  This would allow spirals, extrusion of 2-D geometries
    along 3-D linear paths, etc. which are not currently possible with 
@@ -52,13 +53,25 @@ LONGER-TERM
    where the function might be undefined by modifying the math string
    with booleans; e.g. ln(x^2) > 4  -->  (x^2 > 0) & ( ln(x^2) > 4 )
 
+6. Expression pruner could be improved.  One simple change is to add
+   pruning of multiplication by 0 and 1, addition/subtraction of 0.
+   This might help a lot to improve speed of normal calculation in
+   derivatives.  Beyond this, all kinds of fancy compiler-type
+   optimizations could go in --- but need to be careful they
+   speed up rather than slow things down.
+
+7. Javaviewer could use a download progress bar.
+
+8. Could explicitly identify edges and corners (using clause table)
+   and allow wireframe object display.
+
+9. Could speed up by checking for a large angle between triangles before
+   bothering to check if they span a face.
+
 BUGS
 ----
 
-1. trimesh: Corner finder doesn't always work, resulting in little 
-inclusions along corners.  Is it getting the inside/outside
-direction wrong?  Try coloring corners to see...
-
+1. Little inclusions on edges --- unknown cause -- find+fix.
 
 2. trimesh: Rendering on a non-cubic region causes a bizzare directional 
 incorrect-noral artifact.  This is clearly visbile rendering
@@ -67,5 +80,11 @@ is to always use cubic regions: this isn't much of a performance hit,
 due to the octree.  Longer term, we should find out why---this may
 point the way to other bugs.
 
+3. javaviewer: Rendering an object on a domain that is all full or
+all empty results in an empty STL file (84 bytes long, 80-byte header
+plus 4-byte zero facet count) which causes javaviewer to display its
+deafult image of the teapot.
 
+4. javaviewer: Should properly handle I/O exceptions by printing a 
+helpful error message, should not display teapot on bad URL's.
 

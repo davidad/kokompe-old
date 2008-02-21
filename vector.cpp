@@ -49,6 +49,11 @@ vector_t normalize(vector_t a) {
 	return(t);
 }
 
+float magnitude(vector_t a) {
+	return(sqrt(a.x*a.x + a.y*a.y + a.z*a.z));
+}
+
+
 vector_t cross(vector_t a, vector_t b) {
 	vector_t t(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
 	return(t);
@@ -71,6 +76,8 @@ float dist(vector_t v1, vector_t v2) {
 	vector_t v = sub(v1, v2);
 	return(sqrt(dot(v,v)));
 }
+
+
 
 
 // Find the coordinates of the centroid of a triangle

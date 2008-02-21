@@ -88,6 +88,8 @@ expression_t::expression_t() {
 	children = NULL;
 	evaluator = NULL;
 	var = -1;
+	clause_number = -1;
+	clause_table = NULL;
 }
 
 // Basic Internal Constructor
@@ -95,6 +97,8 @@ expression_t::expression_t(int num_children_in) {
   num_children = num_children_in;
   children = new expression_t*[num_children];
   var = -1;
+  clause_number = -1;
+  clause_table = NULL;
 }
 
 // Copy Constructor
@@ -111,7 +115,11 @@ expression_t::expression_t(const expression_t &a) {
   for (i=0; i<a.num_children; i++) {
     children[i] = new expression_t(*(a.children[i])); 
   }
-  
+   clause_number = a.clause_number;
+  // Do not bother to copy the clause table when copying an expression --- it can be
+  // regenerated if needed
+  clause_table = NULL;
+
 }
 
 // Destructor
@@ -121,7 +129,8 @@ expression_t::~expression_t() {
   for (i=0; i<num_children; i++) {
     delete children[i]; 
   }
-  delete children;     
+  delete []children;    
+  delete clause_table;
 }
 
 
@@ -134,6 +143,9 @@ expression_t::expression_t(string postfix) {
   int done;
   interval_t y;
 
+  // Start with an empty clause table - not used in this fcn
+  clause_number = -1;
+  clause_table = NULL;
 
   // Debugging: print function address list:
   //for (i=0; i< fcn_num; i++) {
@@ -396,6 +408,8 @@ interval_t expression_t::eval(space_interval_t &vars) {
 // subtrees rooted by OR operrators with FALSE as one arg are replacd by their other arg
 // Division by a real number literal is replaced with multiplication by the reciprocal
 
+// Should also add: adding/subtracting zero, multiplying by zero, multiplying by 1   (FEATURE REQUEST ************)
+
 
 interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_prune, int child_num, expression_t *parent) {
   interval_t null_interval;  
@@ -405,7 +419,10 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
   interval_t tmp;
   expression_t *subtree;
 
-
+	// Quick-and-dirty invalivation of clause table on any pruning activity.
+    // Maybe there is a better place to put this that invalidates less
+	if (clause_table != NULL)
+		clause_table->dirty = 1;
 
   /*  cout << "entering eval \n";
   //cout << "num_children: " << num_children << "\n";
@@ -562,11 +579,11 @@ void expression_t::build_children(int num_children_in) {
 
 
 void expression_t::derivative(expression_t *expression_in, int d_var) {
-	cout << "starting derivative";
+	//cout << "starting derivative";
 	if (expression_in->num_children == 0) {
 		// Not an operator --- either a variable or constant
 			// If it is the differention variable, the derivative is 1 --- for any other variable or constant, it is 0.
-			cout << "expression_in -> var " << expression_in->var << " d_var " << d_var << endl;
+			//cout << "expression_in -> var " << expression_in->var << " d_var " << d_var << endl;
 
 			if (expression_in->var == d_var) 
 				data.set_real_number(1.0f);
@@ -575,7 +592,7 @@ void expression_t::derivative(expression_t *expression_in, int d_var) {
 			var = -1;
 	}
 	else {
-		cout << "found operator";
+		//cout << "found operator";
 		// Derivative of an operator expression
 		if ((expression_in->evaluator) == &(interval_t::add)) {
 			// ADDITION
@@ -680,7 +697,7 @@ void expression_t::derivative(expression_t *expression_in, int d_var) {
 				children[1]->children[1]->derivative(expression_in->children[0], d_var);		// derivative of left arg
 			}
 			else {
-				cout << "Error: Derivative of a power other than 2.  Powers other than 2 not supported." << endl;	
+				cerr << "Error: Derivative of a power other than 2.  Powers other than 2 not supported." << endl;	
 				exit(232);
 			}
 		}
@@ -728,7 +745,7 @@ void expression_t::derivative(expression_t *expression_in, int d_var) {
 			children[1]->children[0]->derivative(expression_in->children[0], d_var);					// chain rule - mul by deriv of arg
 			
 			children[1]->children[1]->num_children = 1;
-			children[1]->children[1]->children = new expression_t*[0];
+			children[1]->children[1]->children = new expression_t*[1];
 			children[1]->children[1]->evaluator = &(interval_t::sqrt);
 			children[1]->children[1]->children[0] = new expression_t(*expression_in->children[0]);		// copy arg into sqrt
 		}
@@ -1175,4 +1192,100 @@ string convert_infix_to_postfix(string infix) {
 	
 	
 	return(postfix);	
+}
+
+
+
+// Assigns clause numbers to an expression.  Each real-valued clause gets a new
+// number, startng with the > < = >= <= operator, and everything above that stays 
+// at -1
+void expression_t::mark_clause_numbers() {
+	int *max_clause;
+
+	max_clause = new int;
+	*max_clause = 0;
+	this->mark_clause_numbers_recurser(max_clause);
+	delete max_clause;
+}
+
+void expression_t::mark_clause_numbers_recurser(int *max_clause) {
+	if ((evaluator == &(interval_t::less_than_or_equals)) ||
+		(evaluator == &(interval_t::greater_than_or_equals)) ||
+		(evaluator == &(interval_t::greater_than)) || 
+		(evaluator == &(interval_t::less_than)) ||
+		(evaluator == &(interval_t::equals))) {
+
+		// New clause on a real->boolean conversion operator
+		clause_number = *max_clause;
+		(*max_clause)++;
+	}
+	else {
+		// If not yet to a clause, recurse to any children
+		for (int i=0; i<num_children; i++) {
+			children[i]->mark_clause_numbers_recurser(max_clause);
+		}
+	}
+}
+
+
+
+// Populate's an expression's clause table
+void expression_t::create_clause_table() {
+	// If there is already a clause table, delete it
+	if (clause_table != NULL)
+		delete clause_table;
+	clause_table = new clause_table_t(this->count_clauses());
+	this->clause_table_recurser(clause_table);
+	clause_table->dirty = 0;
+}
+
+
+// Walks an expression's tree and fills in clause table entries as it finds them
+void expression_t::clause_table_recurser(clause_table_t* clause_table_in) {
+	if (clause_number != -1) {
+		clause_table_in->clauses[clause_table_in->next_number] = this;
+		clause_table_in->next_number++;
+	}
+	else {
+		for(int i=0; i<num_children; i++) {
+			children[i]->clause_table_recurser(clause_table_in);
+		}
+	}
+}
+
+// Walks an expression's tree and counts the number of clauses
+int expression_t::count_clauses() {
+	int clause_sum = 0;
+	if (clause_number != -1) {
+	  return(1);
+	}
+	else {
+		for(int i=0; i<num_children; i++) {
+			clause_sum += children[i]->count_clauses();
+		}
+		return(clause_sum);
+	}
+}
+
+
+
+/// IMPLEMENTATION OF CLAUSE_TABLE:
+// MAY WANT TO MOVE TO SEPERATE FILE
+
+
+clause_table_t::clause_table_t(int num_clauses_in) {
+	num_clauses = num_clauses_in;
+	if (num_clauses > 0) {						// This was added to fix a crash on end but didn't help
+		clauses = new expression_t*[num_clauses];
+	}
+	else {
+		clauses = NULL;
+	}
+	next_number = 0;
+}
+
+clause_table_t::~clause_table_t() {
+	if (num_clauses > 0) {						// This was added for fix a crash on end but didn't help
+		delete []clauses;
+	}
 }

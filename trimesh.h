@@ -16,6 +16,7 @@
 #include "interval.h"
 #include "space_interval.h"
 #include "octree.h"
+#include "derivative_table.h"
 #include <list>
 using namespace std;
 
@@ -31,10 +32,11 @@ public:
 	int number;
 	space_interval_t si;
 	int dirty;
+	int clause;
 	list<trimesh_node_t*> triangle_list;
 	vertex_t(float x, float y, float z)
 		: vector_t(x,y,z),
-		number(-1) {		
+		number(-1), clause(-1) {		
 	}
 	vertex_t(float ax, float ay, float az, int a_number) {
 		x=ax;
@@ -42,6 +44,7 @@ public:
 		z=az;
 		number=a_number;
 		dirty = 0;
+		clause = -1;
 	}
 	vertex_t() {
 	}
@@ -83,6 +86,7 @@ public:
 	vector_t* interior_point;
 	vector_t* exterior_point;
 	int dirty;	
+	int has_unknown_clause;
 	float centroid_to_object;
 
 	static int repair_triangles(trimesh_node_t* triangle_a, trimesh_node_t* triangle_b);
@@ -95,6 +99,7 @@ public:
 
 	trimesh_node_t() {
 		dirty = 0;
+		has_unknown_clause = 0;
 		centroid_to_object = 0;
 		for (int i=0; i<3; i++) {
 			neighbors[i] = NULL;
@@ -126,6 +131,8 @@ private:
 	list<vector_t*> voxel_centers;  // unique list of vertex inside/outside points for depopulate
 	int num_triangles;
 
+	// Class members used to compute locations of corners and edges
+	derivative_table_t dt;
 
 	// Class members used to populate the trimesh from voxel grid
 	octree_t *octree;
@@ -142,6 +149,8 @@ private:
 	char *voxel_table[3]; 
 	vertex_t **verticies_table[3];
 	vector_t **voxel_centers_table[3];
+    vector_t *voxel_centers_from_evaluator[3]; 
+   
 	int next_vertex_number;
 
 	// Class Methods:
@@ -168,7 +177,9 @@ public:
 	void edge_refine();
 	void recalculate_normals();
 	void mark_triangles_needing_division();
+	void mark_triangles_spanning_surfaces();
 	void divide_triangles();
+	void move_veticies_onto_edges_and_corners_using_normals();
 	void move_verticies_toward_corners();
 	void add_centroid_to_object_distance(); 
 

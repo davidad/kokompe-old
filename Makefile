@@ -4,31 +4,31 @@ LDFLAGS := -lpthread -largtable2
 XMLRPC_LDFLAGS := -lwwwhttp -lwwwxml -lxmlrpc -lxmlrpc_server -lxmlrpc_client -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_server_abyss -lxmlrpc_abyss 
 LIBS := -lglut -lpython2.5
 
-geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o
+geomeval_obj:=geomeval.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o tool_path.o expand.o derivative_table.o plane.o
 geomeval:=geomeval
 
-kokompe_obj:=kokompe.o camera.o commands.o console_commands.o gui_console.o eval_geometry.o math/math_gl.o 
+kokompe_obj:=kokompe.o camera.o commands.o console_commands.o gui_console.o eval_geometry.o math/math_gl.o derivative_table.o plane.o
 kokompe_obj+= octree.o expression.o interval.o space_interval.o vector.o trimesh.o
 kokompe:=kokompe
 
-xmlrpc_server_obj:=xmlrpc_server.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
+xmlrpc_server_obj:=xmlrpc_server.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o derivative_table.o plane.o
 xmlrpc_server:= xmlrpc_server
 
 xmlrpc_client_obj:=xmlrpc_client.o
 xmlrpc_client:=xmlrpc_client
 
-infix_to_postfix_obj:=infix_to_postfix.o expression.o interval.o space_interval.o
+infix_to_postfix_obj:=infix_to_postfix.o expression.o interval.o space_interval.o 
 infix_to_postfix:= infix_to_postfix
 
-math_string_to_stl_obj:=math_string_to_stl.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o
+math_string_to_stl_obj:=math_string_to_stl.o octree.o expression.o interval.o space_interval.o vector.o trimesh.o derivative_table.o plane.o
 math_string_to_stl:= math_string_to_stl
 
 stl_to_ppm_obj:=stl_to_ppm.o vvolume.o ppm_image.o
 stl_to_ppm:= stl_to_ppm
-math_string_slice_to_ppm_obj:=math_string_slice_to_ppm.o octree.o expression.o interval.o space_interval.o  ppm_image.o
+math_string_slice_to_ppm_obj:=math_string_slice_to_ppm.o octree.o expression.o interval.o space_interval.o  ppm_image.o vector.o
 math_string_slice_to_ppm:= math_string_slice_to_ppm
 
-math_string_slice_to_toolpath_obj:=math_string_slice_to_toolpath.o octree.o expression.o interval.o space_interval.o  tool_path.o expand.o
+math_string_slice_to_toolpath_obj:=math_string_slice_to_toolpath.o octree.o expression.o interval.o space_interval.o  tool_path.o expand.o vector.o
 math_string_slice_to_toolpath:= math_string_slice_to_toolpath
 
 
@@ -73,9 +73,9 @@ $(math_string_slice_to_toolpath): $(math_string_slice_to_toolpath_obj)
 
 # debug build	
 %.o: %.c
-	$(CC) -g -c -o $@ $< $(CFLAGS) -pg
+	$(CC) -c -o $@ $< $(CFLAGS)
 %.o: %.cpp
-	$(CC) -g -c -o $@ $< $(CFLAGS) -pg
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 %.cpp : %.h
 

@@ -31,7 +31,7 @@ vector_t add(vector_t a, vector_t b);
 float dist(vector_t v1, vector_t v2);
 vector_t triangle_centroid(vector_t v1, vector_t v2, vector_t v3);
 
-
+float magnitude(vector_t a);
 
 
 

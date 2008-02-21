@@ -124,11 +124,15 @@ int main(int argc, char** argv) {
 
 
   // Create abstract syntax tree
-  //cerr << "Creating math string.\n";
+  cerr << "Creating math string.\n";
   expression_t ex(math_string);
 
+  cerr << "Marking clause numbers.\n";
+  ex.mark_clause_numbers();
+  // ex.create_clause_table();
+
   // Create intervals
-  //cerr << "Creating intervals.\n";
+  cerr << "Creating intervals.\n";
   interval_t x,y,z;
   x.set_real_interval((float)xmin,(float)xmax);
   y.set_real_interval((float)ymin,(float)ymax);
@@ -136,42 +140,43 @@ int main(int argc, char** argv) {
   space_interval_t si(x,y,z);
 
   // Construct and evaluate octree.
-  //cerr << "Creating octree.\n";
+  cerr << "Creating octree.\n";
   octree_t octree(ex, si);
   octree.eval(recursion_depth);
 
   // Create and evaluate a trimesh
+  cerr << "Populating trimesh.\n";
   trimesh_t trimesh;
-  //cerr << "Populating trimesh.\n";
   trimesh.populate(&octree,&si, nx, ny, nz);  
   if (renderlevel >= 1) {
-    //cerr << "Refining trimesh.\n";  
+    cerr << "Refining trimesh.\n";  
     trimesh.refine();
   }
   if (renderlevel >= 2) {
     //cerr << "Marking triangles near edges and corners.\n";
-    trimesh.mark_triangles_needing_division();
+    //trimesh.mark_triangles_needing_division();
     //cerr << "Adding centroid to determine inside from outside.\n";
-    trimesh.add_centroid_to_object_distance();
-    //cerr << "Moving verticies toward corners.\n";
-    trimesh.move_verticies_toward_corners();
-    //cerr << "Recalculating normals.\n";
+    //trimesh.add_centroid_to_object_distance();
+    cerr << "Marking triangles spanning faces.\n";
+    trimesh.mark_triangles_spanning_surfaces();
+    cerr << "Moving verticies toward corners.\n";
+    trimesh.move_veticies_onto_edges_and_corners_using_normals();
+    cerr << "Recalculating normals.\n";
     trimesh.recalculate_normals();
   }  
 
    char *stl;
    int stl_length;
    
-  // Fill STL data
-  //cerr << "Filling STL.\n";
+   // Fill STL data
+   cerr << "Writing STL.\n";
    trimesh.fill_stl(&stl, &stl_length);
-  
-  // Write STL data to stdout
-  //cerr << "Writing to STDOUT.\n";
-  cout.write(stl, stl_length);
-   //cerr << "Deleting stl.\n";
-  delete(stl);
-  //cerr << "All done.\n";
+   
+   // Write STL data to stdout
+   cout.write(stl, stl_length);
+   delete []stl;
+ 
+   cerr << "Done.\n";
 
   return(0);  
 }

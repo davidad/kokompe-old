@@ -18,6 +18,8 @@ private:
   float upper;
   int status;
 
+
+
  public:
   interval_t();
   void set_real_interval(float lower_in, float upper_in);
@@ -77,7 +79,7 @@ inline float interval_t::get_length() {
 
 inline  void interval_t::set_real_interval(float lower_in, float upper_in) {    
     if (lower_in > upper_in) {
-      printf("Out of order interval!!!");
+      cerr << "Out of order interval!!!";
       exit(1);
     }
 		  

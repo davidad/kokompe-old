@@ -91,3 +91,12 @@ interval_t space_interval_t::get_var_value(int i) {
   }
   return(X);    /// Hack to satsify compiler.
 }
+
+void space_interval_t::get_corners(vector_t *lower, vector_t *upper) {
+	lower->x = X.get_lower();
+	lower->y = Y.get_lower();
+	lower->z = Z.get_lower();
+	upper->x = X.get_upper();
+	upper->y = Y.get_upper();
+	upper->z = Z.get_upper();
+}

@@ -1,4 +1,5 @@
 #include "trimesh.h"
+#include "plane.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -11,7 +12,7 @@ using namespace std;
 #ifdef WIN32
 #include <windows.h>
 #include <gl/gl.h>
-#include <glut.h>
+//#include <glut.h>
 #define M_PI 3.14159f
 #else
 #include <GL/glut.h>
@@ -37,6 +38,7 @@ trimesh_t::trimesh_t() {
 		voxel_table[i] = NULL;
 		verticies_table[i] = NULL;
 		voxel_centers_table[i] = NULL;
+		voxel_centers_from_evaluator[i] = NULL;
 	}
 	num_triangles = 0;
 	next_vertex_number = 0;
@@ -55,10 +57,13 @@ void trimesh_t::initialize_tables() {
 		voxel_table[i] = new char[nx*ny];
 		verticies_table[i] = new vertex_t*[(nx-1)*(ny-1)];
 		voxel_centers_table[i] = new vector_t*[nx*ny];
+		voxel_centers_from_evaluator[i] = new vector_t[nx*ny];
 		
 		memset(verticies_table[i], (unsigned char)NULL, (nx-1)*(ny-1)*sizeof(vector_t*));
 		memset(voxel_centers_table[i], (unsigned char)NULL, nx*ny*sizeof(vector_t*));
-		
+		//memset(voxel_centers_from_evaluator[i], (unsigned char)NULL, nx*ny*sizeof(vector_t));
+
+
 		/*  No performance difference, but above is more compact 
 		
 		for (j=0; j< (nx-1)*(ny-1); j++) {
@@ -78,7 +83,28 @@ void trimesh_t::fill_voxels(interval_t X, interval_t Y, int index) {
 	// Setup slice evaluation region
 	space_interval_t slice(X,Y,Z);
 	// Evaluate single slice of voxel grid
-	octree->eval_on_grid(slice, nx, ny, 1, voxel_table[index]);
+	octree->eval_on_grid(slice, nx, ny, 1, voxel_table[index],voxel_centers_from_evaluator[index]);
+
+	// Test code to evaluate using eval_on_grid instead to check
+	/*
+	x = X.get_lower();
+	y = Y.get_lower();
+	float xstep = (X.get_upper() - X.get_lower()) / (float)nx;
+	float ystep = (Y.get_upper() - Y.get_lower()) / (float)ny;
+	
+	
+	for (int xi=0; xi < nx; xi++) {
+		
+		y = Y.get_lower();
+		for (int yi=0; yi < ny; yi++) {
+			voxel_table[index][	
+
+		}
+	}*/
+
+
+
+
 }
 
 // Populate a trimesh using an evaluated octree on a given space interval,
@@ -89,6 +115,8 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 	char *tmp_voxel_table;
 	vertex_t **tmp_verticies_table;
 	vector_t **tmp_voxel_centers_table;
+	vector_t *tmp_voxel_centers_from_evaluator;
+
 
 	//cout << "nx: " << nx << "ny: " << ny << " nz: " << nz << "\n";
 
@@ -137,7 +165,18 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 				
 				index = ix + nx*iy;		// Linear array index for this voxel
 
-				// For each voxel:
+			
+				// GIGO
+				// Lets see if the voxel table is correct
+
+				/*x = voxel_centers_from_evaluator[1][index].x;
+				y = voxel_centers_from_evaluator[1][index].y;
+				z = voxel_centers_from_evaluator[1][index].z;
+
+
+				if (voxel_table[1][index] != octree->eval_at_point(x,y,z)) {
+					cout << "Voxel table in error.";
+				}*/
 
 				// If true here true here
 				if (voxel_table[1][index] == 1) {
@@ -167,6 +206,12 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 		// If the loop will run again
 		if ((iz+1) < (nz-1)) {
 			// Roll through voxel grid			
+
+			tmp_voxel_centers_from_evaluator = voxel_centers_from_evaluator[0];
+			voxel_centers_from_evaluator[0] = voxel_centers_from_evaluator[1];
+			voxel_centers_from_evaluator[1] = voxel_centers_from_evaluator[2];
+			voxel_centers_from_evaluator[2] = tmp_voxel_centers_from_evaluator;
+
 			tmp_voxel_table = voxel_table[0];
 			voxel_table[0] = voxel_table[1];
 			voxel_table[1] = voxel_table[2];
@@ -184,13 +229,19 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 			voxel_centers_table[1] = voxel_centers_table[2];
 			voxel_centers_table[2] = tmp_voxel_centers_table;
 			memset(voxel_centers_table[2],(unsigned char)NULL, nx*ny*sizeof(vector_t*));
+
+			
+
+
+
 		}
 		else {
 			// All done - Free dynamic memory used for pointer tables		
 			for(i=0; i<3; i++) {
-				delete voxel_table[i];
-				delete verticies_table[i];
-				delete voxel_centers_table[i];
+				delete []voxel_table[i];
+				delete []verticies_table[i];
+				delete []voxel_centers_table[i];
+				delete []voxel_centers_from_evaluator[i];
 			}
 		}
 	}
@@ -284,6 +335,7 @@ inline int next_vertex(int vertex) {
 }
 
 
+
 // Builds two triangles on a rectangular face dividing a voxel inside the
 // object from a voxel outside the object
 void trimesh_t::triangulate_face(int in_slice, int in_index,
@@ -322,17 +374,17 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 
 	// Add voxel centers to shared tables
 	if (voxel_centers_table[in_slice][in_index] == NULL) {
-		x = xstart + ((float)in_ix + 0.5f)*xstep;
-		y = ystart + ((float)in_iy + 0.5f)*ystep;
-		z = zstart + ((float)in_iz + 0.5f)*zstep;
-		voxel_centers_table[in_slice][in_index] = new vector_t(x, y, z);
+		//x = xstart + ((float)in_ix + 0.5f)*xstep;
+		//y = ystart + ((float)in_iy + 0.5f)*ystep;
+		//z = zstart + ((float)in_iz + 0.5f)*zstep;
+		voxel_centers_table[in_slice][in_index] = new vector_t(voxel_centers_from_evaluator[in_slice][in_index]);
 		voxel_centers.push_back(voxel_centers_table[in_slice][in_index]);
 	}
 	if (voxel_centers_table[out_slice][out_index] == NULL) {
-		x = xstart + ((float)out_ix+0.5f)*xstep;
-		y = ystart + ((float)out_iy+0.5f)*ystep;
-		z = zstart + ((float)out_iz+0.5f)*zstep;
-		voxel_centers_table[out_slice][out_index] = new vector_t(x, y, z);
+		//x = xstart + ((float)out_ix+0.5f)*xstep;
+		//y = ystart + ((float)out_iy+0.5f)*ystep;
+		//z = zstart + ((float)out_iz+0.5f)*zstep;
+		voxel_centers_table[out_slice][out_index] = new vector_t(voxel_centers_from_evaluator[out_slice][out_index]);
 		voxel_centers.push_back(voxel_centers_table[out_slice][out_index]);
 	}
 
@@ -536,76 +588,42 @@ void trimesh_t::refine() {
 	int start_value, i;
 	int pt_value;
 
-	float l;
-	float lattice = 2.0f/30.0f;
-
 	vertex_inside_point_iterator = vertex_inside_point.begin();
 	vertex_outside_point_iterator = vertex_outside_point.begin();
-
 
 	for (vertex_iterator = verticies.begin(); vertex_iterator != verticies.end(); vertex_iterator++) {
 		start_point = **vertex_iterator;
 		if (octree->eval_at_point(start_point.x, start_point.y, start_point.z)) {
 			// Point is inside the object, so line search from vertex to outside point
 			end_point = **vertex_outside_point_iterator;
-			
-	
-
-			
 			start_value = 1;
-			//cout << "FOUND POINT INSIDE OBJECT.\n";
 		}
 		else {
 			// Point is outside the object, so line search from vertex to inside point
 			end_point = **vertex_inside_point_iterator;
 			start_value =0;
 		}
-		//cout << "start_value: " << start_value << "\n";
-					l = sqrtf(dot(sub(end_point, start_point), sub(end_point, start_point)));
-			if (l > (lattice * sqrtf(3.0)/2.0)) {
-				cout << "Error!  Moving a point " << l << "which is greater than maximum move of " << lattice*sqrtf(3.0f)/2.0f << "\n";
-			}
-		
-		pt_value = octree->eval_at_point(end_point.x, end_point.y, end_point.z);
-	//	cout << "endpoint value: " << pt_value << "start point value: " << start_value << "\n";
 
 		// Line search along point for edge by binary search
-		//cout << "New Pt";
-		//cout << start_point << end_point << "\n";
-
-		for(i=0; i<7; i++) {	 // depth at 8 for the moment
-			//cout << "Iter " << i << "\n";
-
+		for(i=0; i<8; i++) {	 // depth at 8 for the moment
 			mid_point = midpoint(start_point, end_point);
-
-			//cout << "Mid point: " << mid_point << "\n";
 			pt_value = octree->eval_at_point(mid_point.x, mid_point.y, mid_point.z);
-			//cout << "pt_value: " << pt_value << "\n";
 			if (pt_value == start_value) {
 				start_point = mid_point;
 			}
 			else {
-				
 				end_point = mid_point;
-				//cout << "MOVED ENDPOINT.\n";
 			}
-			//cout << "start: " << start_point << "end: " << end_point << "\n";
-
 		}
 		mid_point = midpoint(start_point, end_point);
-
-		//cout << "using " << mid_point << "\n";
-
 		(**vertex_iterator).set_vector(mid_point);
 
-		//cout << "wrote " << **vertex_iterator << "\n";
-
+		(**vertex_iterator).clause = octree->differential_eval(start_point.x, start_point.y, start_point.z,
+															   end_point.x, end_point.y, end_point.z);
 
 		vertex_inside_point_iterator++;
 		vertex_outside_point_iterator++;
 	}
-	
-	this->recalculate_normals();
 }
 
 int ratio_test(vertex_t verticies[3], int* bad_vertex) {
@@ -827,33 +845,17 @@ void trimesh_t::remove_splinters() {
 
 void trimesh_t::recalculate_normals() {
 	list<trimesh_node_t*>::iterator triangle_iterator;
-	int edge, dummy, i;
+	int i;
 	vertex_t new_verticies[3];
-	int j = 0;
 
 	for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
 		// Copy verticies into a local list
 		for (i=0; i<3; i++)
 			new_verticies[i] = *(*triangle_iterator)->verticies[i];
 	
-		// Do ratio test
-		if (!ratio_test(new_verticies, &dummy)) {	
-		  // If this triangle fails the test, search edge neighbors
-		  // for one that passes
-		  j++;
-		  for(edge = 0; edge < 3; edge++) {
-		    if (((*triangle_iterator)->neighbors[edge]) != NULL) {		   
-		      for (i=0; i<3; i++)  
-			new_verticies[i] = *(*triangle_iterator)->neighbors[edge]->verticies[i];
-		      if (ratio_test(new_verticies, &dummy)) 
-			break;
-		    }  
-		  }
-		} 
 		// Compute normal from cross product of edge vectors
 		(**triangle_iterator).normal = normalize(cross(sub(new_verticies[1],new_verticies[0]), sub(new_verticies[2], new_verticies[0])));
 	}
-	//cout << "Recalculate normals found " << j << " sliver triangles.\n";
 }
 
 
@@ -919,6 +921,173 @@ void trimesh_t::mark_triangles_needing_division() {
 	}
 	// dirty triangles plot a different color so I can see if this is working
 }
+
+
+void trimesh_t::mark_triangles_spanning_surfaces() {
+	list<vertex_t*>::iterator vertex_iterator;
+	list<trimesh_node_t*>::iterator triangle_iterator;
+
+	int clause;
+	int dirty_count = 0;
+	int unknown_clause_count = 0;
+
+    // Check triangles for verticies resolved by different expression clauses
+	for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+
+		clause = (*triangle_iterator)->verticies[0]->clause;
+
+		if  (((*triangle_iterator)->verticies[1]->clause != clause) ||
+			 ((*triangle_iterator)->verticies[2]->clause != clause)) {
+			(*triangle_iterator)->dirty = 1;
+			(*triangle_iterator)->verticies[0]->dirty = 1;
+			(*triangle_iterator)->verticies[1]->dirty = 1;
+			(*triangle_iterator)->verticies[2]->dirty = 1;
+			dirty_count++;
+		}
+
+		if (((*triangle_iterator)->verticies[0]->clause == -1) ||
+			((*triangle_iterator)->verticies[1]->clause == -1) ||
+			((*triangle_iterator)->verticies[2]->clause == -1)) {
+				(*triangle_iterator)->has_unknown_clause = 1;
+				unknown_clause_count++;
+		}
+	}
+	cerr << "Marked " << dirty_count << " triangles on edges and marked " << unknown_clause_count << " as having unknown clause." << endl;
+}
+
+void trimesh_t::move_veticies_onto_edges_and_corners_using_normals() {
+	list<vertex_t*>::iterator vertex_iterator;
+	list<trimesh_node_t*>::iterator triangle_iterator;
+	int clause[3];
+	vector_t normals[3];
+	vector_t points[3];
+	plane_t planes[3];
+	vector_t corner;
+	vector_t tmp;
+	int i;
+	float s = 0.001f;
+	vector_t edge_point, box_lower, box_upper;
+	int corner_count = 0;
+	int edge_count = 0;
+
+	//cout << "Building derivative table." << endl;
+	// Build the derivative table for the trimesh
+	dt.create(*(octree->expression));
+
+	// First do corners
+
+	for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+		if ((*triangle_iterator)->dirty) {
+			for (i=0; i<3; i++) 
+				clause[i] = (*triangle_iterator)->verticies[i]->clause;
+			if ((clause[0] != clause[1]) && 
+				(clause[1] != clause[2]) &&
+				(clause[2] != clause[0]) &&
+				(clause[0] != -1) &&
+				(clause[1] != -1) &&
+				(clause[2] != -1)) {
+					// We found a corner-spanning triangle!
+					//cout << "Found a corner triangle." << endl;
+
+					// Compute the normals to each vertex from the math string derivative.
+					// and construct planes through the verticies, tangent to object
+					for(i=0; i<3; i++) { 
+						normals[i] = dt.evaluate_normal(*(*triangle_iterator)->verticies[i], clause[i]);
+						planes[i].set(*(*triangle_iterator)->verticies[i], normals[i]);
+					}
+					// Find intersection point of planes
+					corner = plane_t::three_plane_intersection(planes[0], planes[1], planes[2]);
+					// Determine if this corner point overlaps with one of the verticies voronoi regions
+					for (i=0; i<3; i++) {
+						if ((*triangle_iterator)->verticies[i]->si.is_on(corner.x, corner.y, corner.z)) {
+							// yes!  a match!
+							// MOVE THE VERTEX TO THE CORNER
+							(*triangle_iterator)->verticies[i]->set_vector(corner);
+							(*triangle_iterator)->verticies[i]->dirty = 0;
+							//cout << "Moved vertex." << endl;
+							corner_count++;
+							break;
+						}
+					}
+			}
+		}
+	}
+
+
+	//cout << "Starting edge pass";
+	for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+		if ((*triangle_iterator)->dirty) {
+
+		
+		// This is written inefficiently --- it computes the vertex normals many times, both for each triangle
+		// and from triangle to triangle.  It might be better to pointer to the vertex normal in the vertex data type.
+		// But lets get this working first...
+
+					// NOW DO EDGES
+					// For every vertex pair
+					//   If the verticies are on seperate faces
+					//   Compute normals
+					//	 if the normals are not identical, then 
+					//      compute the line of plane intersection
+					//      for every vertex that is dirty
+					//		   check to see the line of plane intersection falls inside the box
+					//		   if, move the vertex onto the line, mark the vertex clean, and move to the next vertex pair
+					//  This algorithim is correct for objects made of planes, and approximately correct for locally planar objects
+
+			// Compute normal to each vertex on its face
+			for (i=0; i<3; i++) {
+				clause[i] = (*triangle_iterator)->verticies[i]->clause;
+				points[i] = *(*triangle_iterator)->verticies[i];
+				if (clause[i] != -1) {
+					normals[i] = dt.evaluate_normal(points[i], clause[i]);
+					planes[i].set(points[i], normals[i]);
+			}					
+
+					// For each vertex pair 
+					for (int v1=0; v1<3; v1++) {
+						for (int v2=(v1+1); v2 < 3; v2++) {
+							// Check if verticies are on seperate faces and have known faces
+								if ((clause[v1] != clause[v2]) &&
+									(clause[v1] != -1) &&
+									(clause[v2] != -1)) {
+												
+									// Test planes for non-parallelness
+									tmp = cross(normals[v1], normals[v2]);
+									if (magnitude(tmp) > s) {
+										// non-parallel planes on differnt known surfaces!
+										line_t line = plane_t::two_plane_intersection(planes[v1], planes[v2]);
+								
+										// Test for intersection of line with the voronoi region of dirty verticies
+										for (int v3=0; v3<3; v3++) {
+											if ((*triangle_iterator)->verticies[v3]->dirty) {
+												(*triangle_iterator)->verticies[v3]->si.get_corners(&box_lower, &box_upper);
+												if (line_t::line_box_intersection(line, box_lower, box_upper, &edge_point)) {
+													//cout << "MOVING A VERTEX! " << "endl";
+													(*triangle_iterator)->verticies[v3]->set_vector(edge_point);
+													(*triangle_iterator)->verticies[v3]->dirty = 0;
+													edge_count++;
+//(*triangle_iterator)->dirty = 0;  // once A vertex has been moved, triangle no longer dirty?
+												}
+											}
+
+										}
+									}
+								}
+						}
+					}
+			}
+		}
+	}
+
+	cerr << "Moved " << corner_count << " corner verticies and " << edge_count << " edge verticies." << endl;
+	}
+	
+	
+	
+
+
+	
+
 
 // Divide triangle1 into three new triangles, to be stored in triangle1-3.  Place the new vertex in vertex, 
 // and make sure the new vertex is on the object in octree
@@ -1751,14 +1920,21 @@ void trimesh_t::drawgl() {
 		v2 = *((*triangle_iterator)->verticies[1]);
 		v3 = *((*triangle_iterator)->verticies[2]);
 		
-	//	if ((*triangle_iterator)->dirty) {
-	//		GLfloat mat_diffuse[] = { 0.7, 0, 0, 1.0 };
-	//		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-	//	}
-	//	else {
-		GLfloat mat_diffuse[] = { 0.0f, 0.0f, 0.7f, 1.0f };
+		if ((*triangle_iterator)->has_unknown_clause) {
+			GLfloat mat_diffuse[] = { 0, 0.7,0, 1.0 };
 			glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-	//	}
+	
+		}
+		else if ((*triangle_iterator)->dirty) {
+			GLfloat mat_diffuse[] = { 0.7, 0, 0, 1.0 };
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+		}
+
+	
+		else {
+			GLfloat mat_diffuse[] = { 0.0f, 0.0f, 0.7f, 1.0f };
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+		}
 	
 		glBegin(GL_TRIANGLES);  
 			glNormal3f(n.x, n.y, n.z);

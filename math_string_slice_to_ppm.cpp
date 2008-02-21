@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
   //cerr << "Evaluating on grid.\n";
   array_2d<char> results(nx,ny);
   si.set(xmin, xmax, ymin, ymax, zlevel, zlevel);
-  octree.eval_on_grid(si, results.width, results.height, 1, &results[0]);
+  octree.eval_on_grid(si, results.width, results.height, 1, &results[0], NULL);
 
   ppm_image image(nx,ny);
   point location;

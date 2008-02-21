@@ -3,6 +3,7 @@ using namespace std;
 
 
 #include "interval.h"
+#include "vector.h"
 
 #ifndef SPACE_INTERVAL_T
 #define SPACE_INTERVAL_T
@@ -23,6 +24,9 @@ private:
   int get_zone(float x, float y, float z);
   int is_on(float x, float y, float z);
   void set(float xmin, float xmax, float ymin, float ymax, float zmin, float zmax);
+  void get_corners(vector_t *lower, vector_t *upper);
+
+
   friend ostream& operator<<(ostream &s, const space_interval_t &si);
  
 };
