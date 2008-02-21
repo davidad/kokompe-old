@@ -151,19 +151,22 @@ int main(int argc, char** argv) {
   if (renderlevel >= 1) {
     cerr << "Refining trimesh.\n";  
     trimesh.refine();
-  }
-  if (renderlevel >= 2) {
-    //cerr << "Marking triangles near edges and corners.\n";
-    //trimesh.mark_triangles_needing_division();
-    //cerr << "Adding centroid to determine inside from outside.\n";
-    //trimesh.add_centroid_to_object_distance();
-    cerr << "Marking triangles spanning faces.\n";
-    trimesh.mark_triangles_spanning_surfaces();
-    cerr << "Moving verticies toward corners.\n";
-    trimesh.move_veticies_onto_edges_and_corners_using_normals();
-    cerr << "Recalculating normals.\n";
+  
+    if (renderlevel >= 2) {
+      //cerr << "Marking triangles near edges and corners.\n";
+      //trimesh.mark_triangles_needing_division();
+      //cerr << "Adding centroid to determine inside from outside.\n";
+      //trimesh.add_centroid_to_object_distance();
+      cerr << "Marking triangles spanning faces.\n";
+      trimesh.mark_triangles_spanning_surfaces();
+      cerr << "Moving verticies toward corners.\n";
+      trimesh.move_veticies_onto_edges_and_corners_using_normals();
+    }  
+
+    cerr << "Recalculating normals...\n";
     trimesh.recalculate_normals();
-  }  
+  }
+  
 
    char *stl;
    int stl_length;
