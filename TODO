@@ -6,7 +6,7 @@ SHORT-TERM MUST DO
 ==================
 
 1. All-the-way-through working UI to go from Python .CAD to 
-rendered 3D images.  (web PHP?)
+rendered 3D images.  (DONE!)
 
 2. All-the-way-through UI to do the same for 2D geometry. (web PHP?)
 
@@ -18,7 +18,89 @@ rendered 3D images.  (web PHP?)
 5. Clear documentation of all build dependencies --- procedure
 to build from scratch.
 
-6. Get web interface (amy PHP) into version control.
+6. Get web interface (amy PHP) into version control. (DONE!)
+
+In web interface, keep previous settings in one session by 
+fixing postdata thing.
+
+Ability to list files and select one from list to edit by clicking
+
+Think about scheme for curated vs. non-curated libraries (DONE)
+
+Creating + documenting library functions (k_french)
+
+2D version of render
+
+Rename things:
+ 0		Fastest, Worst		(Minimal)
+ 1					(Smooth Surfaces)
+ 2		Slowest, Best		(Sharp Edges)
+ resolution	smller is slower, Smallest Feature Size
+ bb dim		
+
+javaviewer auto reload
+
+kill java splash screen
+
+fix bumps onto Level 2 objects 
+
+ability to click points in javaviewer and get their location / vertex #
+and surface normal vector
+
+
+wireframe mode
+
+box next to render for which part you want to render (DONE!)
+
+textures/colors?
+
+*******
+
+have viewer show multiple STL, each with center coords, (rotation?)
+and color/texture.  
+
+ability to specify multiple things in python
+   mutltiple objects to render
+   multiple output
+
+// model description
+// make assembly from models
+part1 = x^2 + y^2 < 5
+part2 = cylinder
+use part1
+use part2
+
+accomodate model metadata such as
+part1.origin = (0,1,0)
+part1.rendercolor = red...
+
+allows for multiple parts (not all & as one string)
+
+on stdin, math_string_to_stl could take:
+
+
+part1.function = foo;
+part1.color = black;
+part1.location[0] = (x,y,z)
+part1.location[1] = (x2,y2,z2)
+
+// fabrication
+epilog_file(part1)
+epilog_file(part2)
+
+
+problem is presenting a clean, easy-to-start but powerful, 
+efficient assembly mode
+****
+
+exexfile / use alias
+
+easy-to-identify button leading to nice, clear readable in
+20 seconds getting started page
+
+trap for empty and display welcome screen
+
+
 
 LONGER-TERM 
 ===========
@@ -68,6 +150,24 @@ LONGER-TERM
 9. Could speed up by checking for a large angle between triangles before
    bothering to check if they span a face.
 
+10. Ability for use to abort rendering in web interface
+
+11. Ability to upload files
+
+12. deal with BW constraints 
+
+13. server permissions / security / trap for rm * in python code
+
+14. kokompe.org goes to phmgrid1, password protection?
+    kokompe.cba ..
+
+15. Scratch integration --- because scratch is a web-based coding 
+   environment.
+
+16. write code in your favorite language (e.g. matlab, C, etc.)
+     buttons/ hash-bang to select which language you are using in editor
+     run gcc / octave / f77 / java
+ 
 BUGS
 ----
 
@@ -79,6 +179,8 @@ the unit sphere on -.5 .5 -1 1 -1 1.  A short term workaround
 is to always use cubic regions: this isn't much of a performance hit,
 due to the octree.  Longer term, we should find out why---this may
 point the way to other bugs.
+  (WORKED AROUND: PHP ONLY ALLOWS CUBIC REGIONS.)
+
 
 3. javaviewer: Rendering an object on a domain that is all full or
 all empty results in an empty STL file (84 bytes long, 80-byte header
@@ -87,4 +189,9 @@ deafult image of the teapot.
 
 4. javaviewer: Should properly handle I/O exceptions by printing a 
 helpful error message, should not display teapot on bad URL's.
+
+5. Inccreasing text size in Mozilla on ara's machine causes line 
+numbers to get messed up  --- line  numbers box needs to be size
+of browser
+
 

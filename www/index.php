@@ -12,6 +12,7 @@
 // DEFINES
 $model = $_POST['model'];
 $do = $_POST['do'];
+$renderpart = $_POST['renderpart'];
 $cad_savecontent = stripslashes($_POST['cad_savecontent']);
 $thispage = $_SERVER['PHP_SELF'];
 $dot_cad = "CAD/$model.cad";
@@ -25,7 +26,7 @@ $dot_jnlp = "JNLP/$model.jnlp";
 
 //-----
 function python_to_math ($dot_cad) {
-  global $dot_py;
+  global $dot_py, $renderpart;
   $python_string = "
 from string import *
 from math import *
@@ -34,7 +35,9 @@ class dummy_cad():
     return
 cad=dummy_cad()
 execfile (\"$dot_cad\")
-print cad.function";
+cad.function = $renderpart
+print cad.function
+";
   file_put_contents($dot_py, $python_string);
   $math_string = shell_exec("python $dot_py");
   return $math_string;
@@ -126,6 +129,7 @@ $cad_loadcontent = htmlspecialchars(file_get_contents($dot_cad));
 <input class=button type="submit" name="do" value="LOAD FILE">
 <input class=button type="submit" name="do" value="SAVE FILE">
 <input class=button type="submit" name="do" value="SAVE & RENDER">
+<input class=field type=text size=10 name=renderpart value=<?=$model?>>
 <br>
 Resolution: <input class=field type=text size=1 name=rendres value="0.03">
 &nbsp; &nbsp;
