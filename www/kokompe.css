@@ -1,0 +1,89 @@
+html {font: normal 75% arial, verdana, sans-serif }
+body {
+  background-color: #2f4f4f;
+}
+.errormsg {
+  color: #FFFFFF;
+  background-color: #b22222;
+}
+
+.highlight {
+  color: #FFFFFF;
+  background-color: ffd700;
+}
+.toolbar {
+  color: #FFFFFF;
+  background-color: #708090;
+  padding: 0.2em;
+}
+.titlebar {
+  font-weight: bold;
+  font-size: 12pt;
+  color: #333333;
+  background-color: #d2691e;
+  padding: 0.5em;
+  border-style: solid;
+  border-width: 3px;
+  border-color: #e37a2f #c1580d #c1580d #e37a2f;
+}
+.title {
+  font-weight: bold;
+  font-size: 12pt;
+  color: #333333;
+  background-color: #d2691e;
+  border-style: solid;
+  border-width: 1px;
+  border-color:  #c1580d #e37a2f #e37a2f #c1580d;
+}
+a:link {
+  color: #ffffff;
+  backfround: transparent;
+}
+a:visited {
+  color: #ffffff;
+  backfround: transparent;
+}
+a:active {
+  color: #ffffff;
+  backfround: transparent;
+}
+textarea.cad {
+  width: 100%;
+  font-size:100%;
+  color: #111111;
+  background-color: #cccccc;
+}
+
+.editarea {
+  padding: 3em;
+}
+input.button {
+  font-size: 8pt;
+  color: #dddddd;
+  background-color: #607080;
+  border: solid 1px 1px 1px 1px;
+  border-color: #708090 #506070 #506070 #708090;
+}
+input.field {
+  background-color: #8090aa;
+  border: solid 2px;
+  border-color: #607080 #90a0b0 #90a0b0 #607080;
+  font-size: 8pt;
+}
+textarea.cad {
+  background-color: #99aabb;
+}
+#editContent{ 
+    margin-left:20px;
+    padding-left:100px; 
+    width:600px; 
+    height:200px; 
+    border:1px solid #666; 
+} 
+ .textAreaWithLines{ 
+   display:block; 
+   margin:5; 
+   border:1px solid #666; 
+   border-right:none; 
+   background:#708090;
+} 

@@ -1,0 +1,41 @@
+Kokompe Web IDE
+By Amy Sun, amy.sun@cba.mit.edu
+Documentation ghostwritten by Ara Knaian, ara.knaian@cba.mit.edu
+2/21/2008
+
+
+How to Install:
+==============
+
+1. Install a web server and PHP on the machine. 
+
+(For example, as of this writing, on Ubuntu Gutsy:)
+
+apt-get install apache2
+apt-get install php5
+mkdir /var/www/kokompe
+chmod 0777 kokompe
+
+2. Copy everything in www/ into a web-accesible directory
+
+3. Give write permissions on the CAD, MATH, STL, and JNLP directories
+to www-data (or equivalent) user.  Give read permission for everything else.
+
+4. Currently, our server name (phmgrid1.media.mit.edu) is hardcoded into
+all files, so grep for it and replace everywhere you find it with your
+server name (and path to installation)
+
+5. You need to have math_string_to_stl and infix_to_postfix executable on your path (or hardcode the path to them into index.php).  (The source for these programs is in the root of this git archive.)
+ 
+NOTE
+----
+
+The clients must have Java Web Start installed to use the spinny viewer.
+On Ubuntu, you can install java web start by running:
+
+apt-get install sun-java6-jre
+update-java-alternatives --set java 1.6.0-sun 
+  (adjusting the parameters to these commands for the latest
+   version of the JRE if needed)
+
+

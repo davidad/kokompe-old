@@ -1,0 +1,13 @@
+execfile('LIB/neil.lib')
+
+#
+# define part
+#
+
+d = .5
+cyl = cylinder(0,0,-d,d,d/3)
+con = cone(0,0.2,-d+.2,d,d/3)
+
+part = add(cyl,con)
+cad.function = part
+
