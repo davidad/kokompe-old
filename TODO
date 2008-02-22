@@ -12,6 +12,7 @@ rendered 3D images.  (DONE!)
 
 3. Toolpath generation for 2-D tools.
   (apparently the grassfire toolpath algorithim has a fatal flaw?)  
+  (it works in most practical cases, but we should fix it later. -- David)
 
 4. Output to laser cutter, waterjet, etc. ported from cad.py
 

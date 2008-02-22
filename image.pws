@@ -1,6 +1,0 @@
-
-[executer]
-RunInTerminal=true
-
-[Project State]
-clean before build=false
