@@ -1,4 +1,5 @@
 *.o
+*.class
 *.ppm
 *~
 *.swp
