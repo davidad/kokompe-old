@@ -47,6 +47,8 @@ static interval_t (*fcn_evaluator[])(const interval_t&, const interval_t&) = {
 
 
 static const int fcn_args[] = {2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1};  
+
+// This isn't used anymore --- just put 0 for new opeators (AK - 2/22/08)
 static const int fcn_lazy[] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0};
 
 // operator precedence
