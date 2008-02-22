@@ -38,9 +38,9 @@ Rename things:
  resolution	smller is slower, Smallest Feature Size
  bb dim		
 
-javaviewer auto reload
-
-kill java splash screen
+javaviewer auto reload (DONE)
+  
+kill java splash screen (amys) 
 
 fix bumps onto Level 2 objects 
 
@@ -142,7 +142,7 @@ LONGER-TERM
    optimizations could go in --- but need to be careful they
    speed up rather than slow things down.
 
-7. Javaviewer could use a download progress bar.
+7. Javaviewer could use a download progress bar. (DONE!)
 
 8. Could explicitly identify edges and corners (using clause table)
    and allow wireframe object display.
@@ -185,10 +185,10 @@ point the way to other bugs.
 3. javaviewer: Rendering an object on a domain that is all full or
 all empty results in an empty STL file (84 bytes long, 80-byte header
 plus 4-byte zero facet count) which causes javaviewer to display its
-deafult image of the teapot.
+deafult image of the teapot. (FIXED!)
 
 4. javaviewer: Should properly handle I/O exceptions by printing a 
-helpful error message, should not display teapot on bad URL's.
+helpful error message, should not display teapot on bad URL's. (FIXED!)
 
 5. Inccreasing text size in Mozilla on ara's machine causes line 
 numbers to get messed up  --- line  numbers box needs to be size
