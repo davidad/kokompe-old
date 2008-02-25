@@ -237,7 +237,10 @@ int octree_t::differential_eval(float x1, float y1, float z1, float x2, float y2
 		// type algorithim to check to see which of the unequal clauses actually
 		// changes the value of the expression --- given a proper representation
 		// of the boolean part of the expression, could be fast.
-			clause = -1;
+		
+		  // allowing this case to deal with degeneracy in castle
+
+  //clause = -1;
 		}
 		return(clause);
 	}
