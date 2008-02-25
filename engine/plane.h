@@ -37,6 +37,7 @@ public:
 	void set(vector_t point, vector_t line_vector); 
 
 	static int line_box_intersection(line_t &line, vector_t box_lower, vector_t box_upper, vector_t *inside_point);
+	static int nearest_point_on_line(line_t &line, vector_t point, vector_t *near_point);
 
 };
 
