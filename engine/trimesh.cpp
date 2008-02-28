@@ -1,3 +1,6 @@
+
+
+
 #include "trimesh.h"
 #include "plane.h"
 #include <iostream>
@@ -371,6 +374,7 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 	a[1][2] = 1; b[1][2] = 1;
 	a[1][3] = 1; b[1][3] = 0;
 
+	float range = 0.501f;
 
 	// Add voxel centers to shared tables
 	if (voxel_centers_table[in_slice][in_index] == NULL) {
@@ -417,7 +421,7 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 				y = ystart + ystep * (in_iy  + yv);// + 10.0f;   
 				z = zstart + zstep * (in_iz  + zv);// + 10.0f;
 				verticies_table[zv][index] = new vertex_t(x,y,z, next_vertex_number++);
-				(verticies_table[zv][index])->si.set(x-xstep*0.5f, x+xstep*0.5f, y-ystep*0.5f, y+ystep*0.5f,z-zstep*0.5f, z+zstep*0.5f);
+				(verticies_table[zv][index])->si.set(x-xstep*range, x+xstep*range, y-ystep*range, y+ystep*range,z-zstep*range, z+zstep*range);
 				verticies.push_back(verticies_table[zv][index]);
 				vertex_inside_point.push_back(voxel_centers_table[in_slice][in_index]);
 				vertex_outside_point.push_back(voxel_centers_table[out_slice][out_index]);
@@ -451,7 +455,7 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 				y = ystart + ystep * (edge_iy + 1.0f);// + 10.0f;   
 				z = zstart + zstep * (in_iz  + zv);// + 10.0f;
 				verticies_table[zv][index] = new vertex_t(x,y,z, next_vertex_number++);
-				(verticies_table[zv][index])->si.set(x-xstep*0.5f, x+xstep*0.5f, y-ystep*0.5f, y+ystep*0.5f,z-zstep*0.5f, z+zstep*0.5f);
+				(verticies_table[zv][index])->si.set(x-xstep*range, x+xstep*range, y-ystep*range, y+ystep*range,z-zstep*range, z+zstep*range);
 
 				//cout << "created new entry at " << verticies_table[zv][index] << "\n";
 				verticies.push_back(verticies_table[zv][index]);
@@ -491,7 +495,7 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 				y = zstart + ystep * (in_iy  + yv);// + 10.0f;
 				z = zstart + (zstep * (edge_iz + 1.0f));// + 10.0f;      
 				verticies_table[edge_slice][index] = new vertex_t(x,y,z, next_vertex_number++);
-				(verticies_table[edge_slice][index])->si.set(x-xstep*0.5f, x+xstep*0.5f, y-ystep*0.5f, y+ystep*0.5f,z-zstep*0.5f, z+zstep*0.5f);
+				(verticies_table[edge_slice][index])->si.set(x-xstep*range, x+xstep*range, y-ystep*range, y+ystep*range,z-zstep*range, z+zstep*range);
 				verticies.push_back(verticies_table[edge_slice][index]);
 				vertex_inside_point.push_back(voxel_centers_table[in_slice][in_index]);
 				vertex_outside_point.push_back(voxel_centers_table[out_slice][out_index]);
@@ -605,7 +609,7 @@ void trimesh_t::refine() {
 		}
 
 		// Line search along point for edge by binary search
-		for(i=0; i<8; i++) {	 // depth at 8 for the moment
+		for(i=0; i<16; i++) {	 // depth at 8 for the moment
 			mid_point = midpoint(start_point, end_point);
 			pt_value = octree->eval_at_point(mid_point.x, mid_point.y, mid_point.z);
 			if (pt_value == start_value) {
@@ -975,7 +979,7 @@ void trimesh_t::move_veticies_onto_edges_and_corners_using_normals() {
 	dt.create(*(octree->expression));
 
 	// First do corners
-
+       
 	for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
 		if ((*triangle_iterator)->dirty) {
 			for (i=0; i<3; i++) 
@@ -1015,75 +1019,152 @@ void trimesh_t::move_veticies_onto_edges_and_corners_using_normals() {
 
 
 	//cout << "Starting edge pass";
-	for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
-		if ((*triangle_iterator)->dirty) {
+		for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+	  if ((*triangle_iterator)->dirty) {
+	    
+	    
+	    // This is written inefficiently --- it computes the vertex normals many times, both for each triangle
+	    // and from triangle to triangle.  It might be better to pointer to the vertex normal in the vertex data type.
+	    // But lets get this working first...
+	    
+	    // NOW DO EDGES
+	    // For every vertex pair
+	    //   If the verticies are on seperate faces
+	    //   Compute normals
+	    //	 if the normals are not identical, then 
+	    //      compute the line of plane intersection
+	    //      for every vertex that is dirty
+	    //		   check to see the line of plane intersection falls inside the box
+	    //		   if, move the vertex onto the line, mark the vertex clean, and move to the next vertex pair
+	    //  This algorithim is correct for objects made of planes, and approximately correct for locally planar objects
+	    
+	    // Compute normal to each vertex on its face
+	    for (i=0; i<3; i++) {
+	      clause[i] = (*triangle_iterator)->verticies[i]->clause;
+	      points[i] = *(*triangle_iterator)->verticies[i];
+	      if (clause[i] != -1) {
+		normals[i] = dt.evaluate_normal(points[i], clause[i]);
+		planes[i].set(points[i], normals[i]);
+	      }
+	    }					
 
-		
-		// This is written inefficiently --- it computes the vertex normals many times, both for each triangle
-		// and from triangle to triangle.  It might be better to pointer to the vertex normal in the vertex data type.
-		// But lets get this working first...
 
-					// NOW DO EDGES
-					// For every vertex pair
-					//   If the verticies are on seperate faces
-					//   Compute normals
-					//	 if the normals are not identical, then 
-					//      compute the line of plane intersection
-					//      for every vertex that is dirty
-					//		   check to see the line of plane intersection falls inside the box
-					//		   if, move the vertex onto the line, mark the vertex clean, and move to the next vertex pair
-					//  This algorithim is correct for objects made of planes, and approximately correct for locally planar objects
+	    /*	    // New Plan
+	    
+	    if ((clause[0] != -1) && (clause[1] != -1) && (clause[2] != -1)) {
+	     
+	      // For each triangle, identify the "odd" vertex on the different face
+	      // from the other two.
 
-			// Compute normal to each vertex on its face
-			for (i=0; i<3; i++) {
-				clause[i] = (*triangle_iterator)->verticies[i]->clause;
-				points[i] = *(*triangle_iterator)->verticies[i];
-				if (clause[i] != -1) {
-					normals[i] = dt.evaluate_normal(points[i], clause[i]);
-					planes[i].set(points[i], normals[i]);
-			}					
+	      // If all verticies are dirty, move the odd one.
+	      // If one of the common pair of verticies is dirty, but not the odd one, move
+	      // the dirty vertex on the common pair
 
-					// For each vertex pair 
-					for (int v1=0; v1<3; v1++) {
-						for (int v2=(v1+1); v2 < 3; v2++) {
-							// Check if verticies are on seperate faces and have known faces
-								if ((clause[v1] != clause[v2]) &&
-									(clause[v1] != -1) &&
-									(clause[v2] != -1)) {
-												
-									// Test planes for non-parallelness
-									tmp = cross(normals[v1], normals[v2]);
-									if (magnitude(tmp) > s) {
-										// non-parallel planes on differnt known surfaces!
-										line_t line = plane_t::two_plane_intersection(planes[v1], planes[v2]);
-								
-										// Test for intersection of line with the voronoi region of dirty verticies
-										for (int v3=0; v3<3; v3++) {
-											if ((*triangle_iterator)->verticies[v3]->dirty) {
-												(*triangle_iterator)->verticies[v3]->si.get_corners(&box_lower, &box_upper);
-												if (line_t::line_box_intersection(line, box_lower, box_upper, &edge_point)) {
-													//cout << "MOVING A VERTEX! " << "endl";
-													(*triangle_iterator)->verticies[v3]->set_vector(edge_point);
-													(*triangle_iterator)->verticies[v3]->dirty = 0;
-													edge_count++;
-//(*triangle_iterator)->dirty = 0;  // once A vertex has been moved, triangle no longer dirty?
-												}
-											}
+	      // Other cases:
+	      // If 
 
-										}
-									}
-								}
-						}
-					}
+	      int odd, pair1, pair2;
+
+	      if ((clause[0] == clause[1]) && (clause[0] != clause[2])) {
+		odd = 2;
+		pair1 = 0;
+		pair2 = 1;
+	      }
+	      else if ((clause[0] == clause[2]) && (clause[0] != clause[1])) {
+		odd = 1;
+		pair1 = 0;
+		pair2 = 2;
+	      }
+	      else if ((clause[1] == clause[2]) && (clause[0] != clause[1])) {
+		odd = 0;
+		pair1 = 1;
+		pair2 = 2;
+	      }
+	      else {
+		break;
+	      }
+
+	      line_t line = plane_t::two_plane_intersection(planes[odd], planes[pair1]);
+
+	      // If ALL verticies are dirty, move the odd one
+	      if (((*triangle_iterator)->verticies[0]->dirty) && 
+		  ((*triangle_iterator)->verticies[1]->dirty) && 
+		  ((*triangle_iterator)->verticies[2]->dirty)) {
+		// Move odd vertex to point nearest line
+		line_t::nearest_point_on_line(line, *(*triangle_iterator)->verticies[odd], &edge_point);
+		(*triangle_iterator)->verticies[odd]->set_vector(edge_point);
+		(*triangle_iterator)->verticies[odd]->dirty = 0;
+	      }
+	      else if (((*triangle_iterator)->verticies[odd]->dirty) &&
+		       ((*triangle_iterator)->verticies[pair1]->dirty) &&
+		       (*triangle_iterator)->verticies[pair2]->dirty == 0) {
+		// If just pair2 is clean, move pair1 to match
+		line_t::nearest_point_on_line(line, *(*triangle_iterator)->verticies[pair1], &edge_point);
+		(*triangle_iterator)->verticies[pair1]->set_vector(edge_point);
+		(*triangle_iterator)->verticies[pair1]->dirty = 0;
+	      }
+	      else if (((*triangle_iterator)->verticies[odd]->dirty) &&
+		       ((*triangle_iterator)->verticies[pair2]->dirty) &&
+		       (*triangle_iterator)->verticies[pair1]->dirty == 0) {
+		// If just pair1 is clean, move pair2 to match
+		line_t::nearest_point_on_line(line, *(*triangle_iterator)->verticies[pair2], &edge_point);
+		(*triangle_iterator)->verticies[pair2]->set_vector(edge_point);
+		(*triangle_iterator)->verticies[pair2]->dirty = 0;
+	      }
+	      // other cases:
+	      // pair is clean, odd is in any state --- that's fine
+	      // odd is clean, pair is in any state --- that fine
+	    }
+	  }
+	}
+	}*/  
+	      
+							 
+	      
+
+
+	    
+	    // For each vertex pair 
+	    for (int v1=0; v1<3; v1++) {
+	      for (int v2=(v1+1); v2 < 3; v2++) {
+		// Check if verticies are on seperate faces and have known faces
+		if ((clause[v1] != clause[v2]) &&
+		    (clause[v1] != -1) &&
+		    (clause[v2] != -1)) {
+		  
+		  // Test planes for non-parallelness
+		  tmp = cross(normals[v1], normals[v2]);
+		  if (magnitude(tmp) > s) {
+		    // non-parallel planes on differnt known surfaces!
+		    line_t line = plane_t::two_plane_intersection(planes[v1], planes[v2]);
+		    
+		    // Test for intersection of line with the voronoi region of dirty verticies
+		    for (int v3=0; v3<3; v3++) {
+		      if ((*triangle_iterator)->verticies[v3]->dirty) {
+			(*triangle_iterator)->verticies[v3]->si.get_corners(&box_lower, &box_upper);
+			if (line_t::line_box_intersection(line, box_lower, box_upper, &edge_point)) {
+			  //cout << "MOVING A VERTEX! " << "endl";
+			  (*triangle_iterator)->verticies[v3]->set_vector(edge_point);
+			  (*triangle_iterator)->verticies[v3]->dirty = 0;
+			  edge_count++;
+			  //(*triangle_iterator)->dirty = 0;  // once A vertex has been moved, triangle no longer dirty?
 			}
+		      }
+		      
+		    }
+		  }
 		}
+	      }
+	    }
+	    
+	  }
 	}
-
+	
 	cerr << "Moved " << corner_count << " corner verticies and " << edge_count << " edge verticies." << endl;
-	}
-	
-	
-	
+}
+
+
+
 
 
 	

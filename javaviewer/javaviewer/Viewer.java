@@ -328,6 +328,18 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		    int normalCtr = 0;
 		    int vertexCtr = 0;
 		    
+		      float []minBox = new float[3];
+		      float []maxBox = new float[3];
+		      int coordCtr = 0;    
+		      minBox[0] = Float.POSITIVE_INFINITY;
+		      minBox[1] = Float.POSITIVE_INFINITY;
+		      minBox[2] = Float.POSITIVE_INFINITY;
+		      maxBox[0] = Float.NEGATIVE_INFINITY;
+		      maxBox[1] = Float.NEGATIVE_INFINITY;
+		      maxBox[2] = Float.NEGATIVE_INFINITY;
+		    
+		    
+		    
 		    for (int facet = 0; facet < numStlFacets; facet++) {
 		    
 		      // Get the 3 floats defining the facet normal 	
@@ -344,14 +356,26 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		    		  normalArray[normalCtr] = normalArray[normalCtr-3];
 		    		  normalCtr++;
 		      }
+		    
+
 		      
+		  
 		      //    Get the 9 floats defining the vertex coordinates 	
 		      for (int vertexFloat = 0; vertexFloat < 9; vertexFloat++) {	   	
 		    	  int accum = 0;
 		    	  for ( int shiftBy=0; shiftBy<32; shiftBy+=8 ) {
 		    		  accum |= ( facetdata[byteCtr++] & 0xff ) << shiftBy;
 			      }
-		    	  vertexArray[vertexCtr++] = ((float)Float.intBitsToFloat( accum )) - 10.0f;
+		    	  vertexArray[vertexCtr] = ((float)Float.intBitsToFloat( accum ));
+		    	  // find bounding box
+		    	  if (vertexArray[vertexCtr] > maxBox[coordCtr]) 
+		    		  maxBox[coordCtr] = vertexArray[vertexCtr];
+		    	  if (vertexArray[vertexCtr] < minBox[coordCtr])
+		    		  minBox[coordCtr] = vertexArray[vertexCtr];
+		    	  vertexCtr++;
+		    	  coordCtr++;
+		    	  if (coordCtr == 3)
+		    		  coordCtr = 0;
 		      }	 
 		      
 		      // Skip attribute byte count
@@ -359,6 +383,32 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		      
 		    }
 			  
+		    
+		    float []boxCenter = new float[3];
+		    float scaleFactor = 0;
+		    float newScaleFactor;
+		    
+		    for(int i=0; i<3; i++) {
+		    	boxCenter[i] = (maxBox[i] + minBox[i])*0.5f;
+		    	newScaleFactor = Math.max(Math.abs(maxBox[i]-boxCenter[i]), Math.abs(minBox[i]-boxCenter[i]));
+		    	if (newScaleFactor > scaleFactor)
+		    		scaleFactor = newScaleFactor;
+		    }
+		    
+		    
+		    // Translate and scale object
+		    scaleFactor = 1.0f/scaleFactor;
+		    
+		    coordCtr = 0;
+		    for (int k = 0; k < numStlFacets*9; k++) {
+			    
+		    	vertexArray[k] -= boxCenter[coordCtr++];
+		    	if (coordCtr == 3)
+		    		coordCtr = 0;
+		    	vertexArray[k] *= scaleFactor;
+		    }
+		    
+		    
 		    // ************** WRAP FLOAT ARRAYS IN FLOATBUFFER OBJECTS FOR JOGL
 		    
 		    ByteBuffer underlyingVertexBuffer = ByteBuffer.allocateDirect(numStlFacets*9*4).order(ByteOrder.nativeOrder());
@@ -378,9 +428,11 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		    
 		    gear1 = gl.glGenLists(1);
 		    gl.glNewList(gear1, GL.GL_COMPILE);
-		  //  gl.glScalef(6.0f, 6.0f, 6.0f);
 		    
-	    
+		    //gl.glPushMatrix();
+		    //gl.glScalef(1.0f/scaleFactor, 1.0f/scaleFactor, 1.0f/scaleFactor);  
+		    //gl.glTranslatef(-boxCenter[0],-boxCenter[1], -boxCenter[2]); 
+		    
 		    // Red object --- change here to change color - RGB
 		    // (or could render color with a color array)
 		    gl.glColor3f(1.0f, 0.0f, 0.0f);
@@ -393,6 +445,7 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		    
 		    // Draw Triangles
 		    gl.glDrawArrays(GL.GL_TRIANGLES, 0, numStlFacets*3);
+		    //gl.glPopMatrix();
 		    
 		    gl.glEndList();   
 	  

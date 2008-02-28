@@ -148,3 +148,12 @@ int line_t::line_box_intersection(line_t &line, vector_t box_lower, vector_t box
 }
 
 
+// Finds the nearest point to point on line line, returns in *near_point.
+int line_t::nearest_point_on_line(line_t &line, vector_t point, vector_t *near_point) {
+  vector_t nv = normalize(line.v);       // Compute normalized line vector (points direction from line.p to desired point A)
+  vector_t lp_p = sub(point, line.p);        // Compute vector from line.p to point)
+  vector_t pv = mul(nv, dot(lp_p, nv));  // get vector from line origin P to pt. A 
+  *near_point = add(line.p, pv);
+  return(0);
+}
+
