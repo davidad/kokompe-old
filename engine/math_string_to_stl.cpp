@@ -127,10 +127,6 @@ int main(int argc, char** argv) {
   cerr << "Creating math string.\n";
   expression_t ex(math_string);
 
-  cerr << "Marking clause numbers.\n";
-  ex.mark_clause_numbers();
-  // ex.create_clause_table();
-
   // Create intervals
   cerr << "Creating intervals.\n";
   interval_t x,y,z;
@@ -138,6 +134,15 @@ int main(int argc, char** argv) {
   y.set_real_interval((float)ymin,(float)ymax);
   z.set_real_interval((float)zmin,(float)zmax);
   space_interval_t si(x,y,z);
+
+  // Prune the expression right off -- this does things like combine unary minus with 
+  // numbers into constants
+  int dummy = 0;
+  cerr << "Simplifying expression.\n";
+  ex.prune(si, 1, &dummy, 0, NULL);
+  
+  cerr << "Marking clause numbers.\n";
+  ex.mark_clause_numbers();
 
   // Construct and evaluate octree.
   cerr << "Creating octree.\n";

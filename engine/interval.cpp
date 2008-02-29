@@ -137,6 +137,7 @@ interval_t interval_t::mul(const interval_t &a, const interval_t& b) {
 interval_t interval_t::div(const interval_t &a, const interval_t& b) {
   interval_t temp;
   interval_t b2;
+  static int warning = 1;
 
   //  cout << "entering divide.\n";
 
@@ -170,8 +171,10 @@ interval_t interval_t::div(const interval_t &a, const interval_t& b) {
       // I think there may be some limit analysis
       // that could be done here, but for now just
       // set interval to +/- Inf
-      cerr << "Division by interval containing zero.\n";
-
+      if (warning) {
+	cerr << "Division by interval containing zero, setting interval to (-Inf, +Inf)" << endl;
+	warning = 0;
+      } 
       temp.set_real_interval(-(float)HUGE, +(float)HUGE);
     }
   }
@@ -371,49 +374,163 @@ interval_t interval_t::cos(const interval_t &a, const interval_t &b) {
   }
 }
 
+
+// Identical to powf(x,y), but checks for some trivial cases 
+// and computes them more efficiently
+inline float powcheckf(float x, float y) {
+  if (y == 2)
+    return(x*x);
+  else if (y == 1)
+    return(x);
+  else
+    return(powf(x,y));
+}
+
+int is_integer(float x) {
+  float epsilon = 1e-6;
+
+  if (fabsf( x - roundf(x)) < epsilon)
+    return(1);
+  else
+    return(0);
+}
+
+int is_odd(float x) {
+  int xint = (int)roundf(x);
+  if (xint % 2)
+    return(1);
+  else
+    return(0);
+}
+
+
 interval_t interval_t::power(const interval_t &a, const interval_t &b) {
   interval_t result;
   float x, y;
-  if (((a.is_real_interval())) && (a.lower > a.upper)) {
-    printf("entered power with out-of-order interval %f %f %i.\n", a.lower, a.upper, a.status);
-    
-
+  int unbounded = 0;
+  static int warning1 = 1, warning2 = 1, warning3 = 1, warning4 = 1;
+  
+  if ( a.is_real_interval()   && (a.lower > a.upper) ) {
+    cerr << "entered power with out-of-order interval " << a.lower << " " << a.upper <<" " << a.status << endl;    
   }
-
-
-  if (b.is_real_number() && (b.lower == 2)) {
-    
+  
+  if (b.is_real_number()) {
     if (a.is_real_number()) {
-      result.set_real_number(a.lower*a.lower);
+      // For purely numerical (non-interval) arguments, just
+      // compute the result and be done with it.
+      result.set_real_number(powcheckf(a.lower, b.lower));
     }
-    else if (a.is_real_interval()) {
-      if ((a.lower <= 0) && a.upper >= 0) {
-	x = fabsf(a.lower);
-	y = fabsf(a.upper);
-	if (x > y) {
-	  result.set_real_interval(0, x*x);
+    else {
+      // Interval raised to a power.
+      
+      float power = fabsf(b.lower);
+      
+      if (power == 0) {
+	// ********************* RAISING TO THE ZEROTH POWER
+	
+	if (a.lower >= 0) {
+	  // any positive number or zero to the zero power is one
+	  result.set_real_number(1.0f);
+	}
+	else if (a.upper < 0) {
+	  // negative number to the zero power is infinity
+	  result.set_real_number(HUGE);
 	}
 	else {
-	  result.set_real_interval(0, y*y);
+	  // interval containing positive and negative numbers
+	  // raised to the zero power could be zero OR infinity
+	  if (warning1) {
+	    cerr << "Interval containing zero raised to the zero power; unbounded. " << endl;
+	    warning1 = 0;
+	  }
+	  unbounded = 1;
 	}
       }
-      else if (a.upper > 0) {
-	result.set_real_interval(a.lower*a.lower, a.upper*a.upper);
-      }
-      else if (a.lower < 0) {
-	result.set_real_interval(a.upper*a.upper, a.lower*a.lower);
-      }
       else {
-	cout << "Unhandled squaring case " << a.lower << " " << a.upper << "\n"; 
+	
+	// ******************* FIRST COMPUTE FOR POSITIVE POWER
+	
+	if (is_integer(power)) {
+	  if (is_odd(power)) {
+	    // odd integer power -> monotonic
+	    result.set_real_interval(powcheckf(a.lower,power), powcheckf(a.upper,power));
+	  }     
+	  else {
+	    // even integer power -> not monotonic, need to consider cases
+	    if ((a.lower <= 0) && (a.upper >= 0)) {
+	      x = fabsf(a.lower);
+	      y = fabsf(a.upper);
+	      if (x > y) {
+		result.set_real_interval(0, powcheckf(x, power));
+	      }
+	      else {
+		result.set_real_interval(0, powcheckf(y, power));;
+	      }
+	    }
+	    else if (a.upper > 0) {
+	      result.set_real_interval(powcheckf(a.lower, power), powcheckf(a.upper, power));
+	    }
+	    else if (a.lower < 0) {
+	      result.set_real_interval(powcheckf(a.upper, power), powcheckf(a.lower, power));
+	    }
+	  }
+	}
+	else {
+	  // non-integral power
+	  if (a.upper > 0) {
+	    // if argument is guaranteed positive -> monotonic
+	    result.set_real_interval(powf(a.lower, power), powf(a.upper, power));
+	  }
+	  else {
+	    // possibly negative number raised to non-integral power
+	    // this could be undefined.  we don't know how to handle this case yet,
+	    // so just punt and set to -INF, INF, meaning it could be anything.  This 
+	    // will force an actual numerical evaluation.  Also print an error message. 
+	    if (warning2) {
+	      cerr << "Possibly negative number raised to non-integral power.  Setting interval to (-INF, INF)" << endl;
+	      warning2 = 0;
+	    }
+	    unbounded = 1;	    
+	  }
+	}
+	
+	// THEN CHECK TO SEE IF POWER IS NEGATIVE AND RECIPROCAL NEEDED
+	
+	if (b.lower < 0) {
+	  // Negative power -- equiv. to 1/(x^y), so interval divide
+	  if ((result.upper < 0) || (result.lower > 0)) {
+	    result.set_real_interval(1.0f/result.upper, 1.0f/result.lower);
+	  }
+	  else {	    
+	    if (warning4) {
+	      cerr << "Negative power results in division by interval containing zero, setting interval to (-Inf, +Inf)" << endl;
+	      warning4 = 0;
+	    } 
+	    unbounded = 1;
+	  }
+	}
       }
     }
   }
   else {
-    cout << "Arbitrary powers (not 2) not supported.\n";
+    if (warning3) {
+      cerr << "Raising a power to a non-constant expression --- not yet supported --- setting interval to (-Inf, Inf)" << endl;
+      warning3 = 0;
+    }
+    unbounded = 1;
   }
-  return(result);
+  
+  
+  // IF UNBOUNDED IS SET -- SET INTERVAL TO WHOLE REAL INTERVAL  
+  if (unbounded) {
+    result.set_real_interval(-(float)HUGE, (float)HUGE);
+  }	
 
-}
+  return(result);
+    
+}    
+
+
 
 interval_t interval_t::sqrt(const interval_t &a, const interval_t &b) {
   interval_t result;

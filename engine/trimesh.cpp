@@ -2029,6 +2029,74 @@ void trimesh_t::drawgl() {
 }
 
 
+void trimesh_t::write_3dm(string filename) {
+  
+  // Custom 3dm "3D-model" file format developed for Kokompe,
+  // for highly efficient communication of 3D geometry
+  // across a net connection to a browser-launched viewer
+   
+  fstream stl_file (filename.c_str(), ios::binary | ios::out | ios::trunc);
+  list<trimesh_node_t*>::iterator triangle_iterator;
+  list<vertex_t*>::iterator vertex_iterator;
+  
+  if (stl_file.fail()) {
+    cout << "Error opening STL output file.\n";
+    return;
+  }
+  else {
+
+    // File format:
+    // all 4-byte long / float blocks
+    // length of file in bytes
+    // coordinates of object center point (x,y,z) floats
+    // scale factor from object size == 2 , one float
+    // number of verticies
+    // verticies, packed
+    // number of triangles
+    // triangles, packed  (lists of 3 verticies by number)
+
+    // eventually, will add support for wireframes, colors,
+    // named objects, quadrilaterals, etc. --- but for the moment, KISS
+    
+    int file_size = 4* (7 + (next_vertex_number*3) + (num_triangles*3));
+    float xcenter = 10.0f;
+    float ycenter = 10.0f;
+    float zcenter = 10.0f;
+    float scalefactor = 1.0f;
+
+    stl_file.write((char*)&file_size, 4);
+    stl_file.write((char*)&xcenter, 4);
+    stl_file.write((char*)&ycenter, 4);
+    stl_file.write((char*)&zcenter, 4);
+    stl_file.write((char*)&scalefactor, 4);
+
+    stl_file.write((char*)&next_vertex_number, 4);
+
+
+    for (vertex_iterator = verticies.begin(); vertex_iterator != verticies.end(); vertex_iterator++) {
+      stl_file.write((char*)&(*vertex_iterator)->x, 4);
+      stl_file.write((char*)&(*vertex_iterator)->y, 4);
+      stl_file.write((char*)&(*vertex_iterator)->z, 4);
+    }
+
+    stl_file.write((char*)&num_triangles,4);
+
+    for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+
+      stl_file.write((char*)&(*triangle_iterator)->verticies[0]->number,4);
+      stl_file.write((char*)&(*triangle_iterator)->verticies[1]->number,4);
+      stl_file.write((char*)&(*triangle_iterator)->verticies[2]->number,4);
+    }
+    
+    stl_file.close();
+    //cout << "closed file.\n";
+    
+  }
+
+}
+
+
+
 void trimesh_t::write_stl(string filename) {
   
   // Binary STL file format is described in
@@ -2091,6 +2159,7 @@ void trimesh_t::write_stl(string filename) {
   }
 
 }
+
 
 
 

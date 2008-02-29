@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 #include <iostream>
+#include <cmath>
 using namespace std;
 
 
@@ -60,8 +61,15 @@ static const unsigned int lowest_precedence = 24;
 // by precedence group
 //  --- 0 = left, 1 = right
 // starting at precedence group "0"
-static const int assoc[] = {0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,1,1,0};  
 
+// this looks to be FUBARED!
+//static const int assoc[] = {0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,1,1,0};  
+
+// all unary operators plus ** are right-associative. all else is left-associative, per Python spec
+// ** is precedence group 9
+static const int assoc[] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 1,
+			    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 
+			    0, 0, 0, 0, 0};
 
 // Operator precedence and associativity from
 // http://www.ibiblio.org/g2swap/byteofpython/read/operator-precedence.html
@@ -572,45 +580,55 @@ void expression_t::build_children(int num_children_in) {
 
 }
 
-/** Derivative
-  * This method sets an empty expression to the symbolic derivative of the supplied expression_in, 
-	with respect to the variable with code var 
-	(This is used to find surface normals to the object)
+int float_equals(float x, float y) {
+  float tol = ( fabsf(x) + fabsf(y) )*1e-6;
+  
+  if (fabsf(x-y) < tol) 
+    return(1);
+  else
+    return(0); 
+}
 
-	THIS METHOD ASSUMES AN EMPTY EXPRESSION, FOR NOW.  WOULD BE EASY TO FIX. */
+
+/** Derivative
+ * This method sets an empty expression to the symbolic derivative of the supplied expression_in, 
+ with respect to the variable with code var 
+ (This is used to find surface normals to the object)
+ 
+ THIS METHOD ASSUMES AN EMPTY EXPRESSION, FOR NOW.  WOULD BE EASY TO FIX. */
 
 
 void expression_t::derivative(expression_t *expression_in, int d_var) {
-	//cout << "starting derivative";
-	if (expression_in->num_children == 0) {
-		// Not an operator --- either a variable or constant
-			// If it is the differention variable, the derivative is 1 --- for any other variable or constant, it is 0.
-			//cout << "expression_in -> var " << expression_in->var << " d_var " << d_var << endl;
-
-			if (expression_in->var == d_var) 
-				data.set_real_number(1.0f);
-			else
-				data.set_real_number(0.0f);
-			var = -1;
-	}
-	else {
-		//cout << "found operator";
-		// Derivative of an operator expression
-		if ((expression_in->evaluator) == &(interval_t::add)) {
-			// ADDITION
-			// Derivative of a sum is the sum of the derivatives
-			evaluator = &(interval_t::add); 	
-			build_children(2);
-			children[0]->derivative(expression_in->children[0], d_var);
-			children[1]->derivative(expression_in->children[1], d_var);
-
-		}
-		// For our purposes in finding normals, greater than, less than, and equals
-		// all have a derivative equivilent to MINUS
-		else if (((expression_in->evaluator) == &(interval_t::sub)) ||
-				 ((expression_in->evaluator) == &(interval_t::greater_than)) ||
-				 ((expression_in->evaluator) == &(interval_t::less_than)) ||
-				 ((expression_in->evaluator) == &(interval_t::equals)) ||
+  //cout << "starting derivative";
+  if (expression_in->num_children == 0) {
+    // Not an operator --- either a variable or constant
+    // If it is the differention variable, the derivative is 1 --- for any other variable or constant, it is 0.
+    //cout << "expression_in -> var " << expression_in->var << " d_var " << d_var << endl;
+    
+    if (expression_in->var == d_var) 
+      data.set_real_number(1.0f);
+    else
+      data.set_real_number(0.0f);
+    var = -1;
+  }
+  else {
+    //cout << "found operator";
+    // Derivative of an operator expression
+    if ((expression_in->evaluator) == &(interval_t::add)) {
+      // ADDITION
+      // Derivative of a sum is the sum of the derivatives
+      evaluator = &(interval_t::add); 	
+      build_children(2);
+      children[0]->derivative(expression_in->children[0], d_var);
+      children[1]->derivative(expression_in->children[1], d_var);
+      
+    }
+    // For our purposes in finding normals, greater than, less than, and equals
+    // all have a derivative equivilent to MINUS
+    else if (((expression_in->evaluator) == &(interval_t::sub)) ||
+	     ((expression_in->evaluator) == &(interval_t::greater_than)) ||
+	     ((expression_in->evaluator) == &(interval_t::less_than)) ||
+	     ((expression_in->evaluator) == &(interval_t::equals)) ||
 				 ((expression_in->evaluator) == &(interval_t::less_than_or_equals)) ||
 				 ((expression_in->evaluator) == &(interval_t::greater_than_or_equals))) {
 			// SUBTRACTION
@@ -672,36 +690,52 @@ void expression_t::derivative(expression_t *expression_in, int d_var) {
 			children[1]->children[1]->data.set_real_number(2.0f);										// squared
 		}
 		else if ((expression_in->evaluator) == &(interval_t::power)) {
-			// For powers involving differntion variables, this is tricky.
-			// Using x^y = e ^ (ln(x)*y) , I think that the answer is,
-			// for general functions x,y, possibly involving the differention variable:
-			// deriv(x^y) = e^(ln(x)y)*( (x'*y/x) + ln(x)*y' )
-			// This reduces to the right answer, y*x^(y-1)*x' for y contant, and 
-			// to the right answer for x^x, which is commonly tabulated.
-
-			// However, interval_t does not support powers other than constant 2 anyway.
-			// So I will leave support for arbitrary powers (both here and in interval_t) as a TODO,
-			// and just say that x^2 = 2*x*x', and give an error otherwise.  At the same time
-			// we will need to bring in support for ln and exp
- 
-			// y = x^2
-			// y' = 2*x*x'
-
-			if ((expression_in->children[1]->data.get_lower() == 2.0f) && (expression_in->children[1]->data.get_upper() == 2.0f)) {
-				evaluator = &(interval_t::mul);
-				build_children(2);
-				children[0]->data.set_real_number(2.0f);
-				children[1]->evaluator = &(interval_t::mul);
-				children[1]->num_children = 2;
-				children[1]->children = new expression_t*[2];	
-				children[1]->children[0] = new expression_t(*expression_in->children[0]);		// copy left arg
-				children[1]->children[1] = new expression_t();
-				children[1]->children[1]->derivative(expression_in->children[0], d_var);		// derivative of left arg
-			}
-			else {
-				cerr << "Error: Derivative of a power other than 2.  Powers other than 2 not supported." << endl;	
-				exit(232);
-			}
+		  // For powers involving differntion variables, this is tricky.
+		  // Using x^y = e ^ (ln(x)*y) , I think that the answer is,
+		  // for general functions x,y, possibly involving the differention variable:
+		  // deriv(x^y) = e^(ln(x)y)*( (x'*y/x) + ln(x)*y' )
+		  // This reduces to the right answer, y*x^(y-1)*x' for y contant, and 
+		  // to the right answer for x^x, which is commonly tabulated.
+		 
+		  // However, interval_t does not support raising to non-constant powers anyway.
+		  // So I will leave support for non-constant powers as a TODO to come in with
+		  // proper support for ln, exp, etc. and for now, just say 
+		  // y' = nx^(n-1)*x'
+		  
+		  if ((expression_in->children[1]->num_children == 0) &&
+		      (expression_in->var = -1)) {
+		    // vaild case, raising an expression to a constant power
+		    // expressions cannot contain intervals themselves, so just get lower
+		    float power = expression_in->children[1]->data.get_lower();
+		    
+		    evaluator = &(interval_t::mul);
+		    build_children(2);
+		    children[0]->data.set_real_number(power);
+		    children[1]->evaluator = &(interval_t::mul);
+		    children[1]->num_children = 2;
+		    children[1]->children = new expression_t*[2];	
+		    
+		    if (float_equals(power,2.0f)) {
+		      // for x^2, deriv is 2xx', so just copy left arg
+		      children[1]->children[0] = new expression_t(*expression_in->children[0]);		// copy left arg
+		    }
+		    else {
+		      // general case, x^(power-1)
+		      children[1]->children[0] = new expression_t();
+		      children[1]->children[0]->evaluator = &(interval_t::power);
+		      children[1]->children[0]->num_children = 2;
+		      children[1]->children[0]->children = new expression_t*[2];
+		      children[1]->children[0]->children[0] = new expression_t(*expression_in->children[0]);
+		      children[1]->children[0]->children[1] = new expression_t();
+		      children[1]->children[0]->children[1]->data.set_real_number(power-1.0f);		      
+		    }
+		    children[1]->children[1] = new expression_t();
+		    children[1]->children[1]->derivative(expression_in->children[0], d_var);		// derivative of left arg
+		  }
+		  else {
+		    cerr << "Error: Derivative of a power raised to a non-contant expression.  Not currently supported." << endl;	
+		    exit(232);
+		  }
 		}
 		else if ((expression_in->evaluator) == &(interval_t::sin)) {
 			// SINE
@@ -800,9 +834,9 @@ void print_tokens(list<string> &tokens) {
   list<string>::iterator theiterator;
 
    for (theiterator = tokens.begin(); theiterator != tokens.end(); theiterator++) {
-     cout << *theiterator;
+     cerr << *theiterator;
    }
-   cout << "\n";
+   cerr << "\n";
 
 
    }
@@ -896,6 +930,10 @@ string convert_infix_to_postfix(string infix) {
   add_token(tokens, infix.substr(token_start, infix.size() - token_start));
 
 
+  //cerr << "original tokenized string:" ;
+  //print_tokens(tokens);
+  //cerr << endl;
+
   // Handle overloading of "-" character as both unary minus and binary subtraction
   // Go through the string left-to-right.  For all "-" characters, if preceded
   // by an operator or left paren, call it unary minus "m", otherwise leave it
@@ -924,8 +962,8 @@ string convert_infix_to_postfix(string infix) {
 			last_says_unary_minus = 1;
 		else {
 			for (j=0; j < fcn_num; j++) {
-				if (fcn_name[j].compare(*theiterator) == 0) {
-					last_says_unary_minus = 1;
+			  if (fcn_name[j].compare(*theiterator) == 0) {
+			    last_says_unary_minus = 1;
 					break;
 				}
 			}
@@ -933,7 +971,9 @@ string convert_infix_to_postfix(string infix) {
 	}
   }
  
-
+  //cerr << "handled unary minus string: ";
+  //print_tokens(tokens);
+  //cerr << endl;
 
   // Now enforce operator precedence and associativity 
   // This implementation uses the straightforward parentheses-insertion
@@ -990,7 +1030,13 @@ string convert_infix_to_postfix(string infix) {
 	// We have a match!  Now insert parens around the immediate
 	// left and right arguments of this operator to enforce
 	// proper operator precedence and associativity
+	//cerr << "processing operator: " << fcn_name[j] << " with " << fcn_args[j] << " args." << endl;
+
 	paren_count = 0;
+
+	// FOR A UNARY OPERATOR: Puts a paren immediately before op, and after end of right arg
+	// FOR A BINARY OPERATOR: Puts a paren before left op and after right op
+	// Should always write exactly one left and one right paren
 
 	
 	if (args == 1) {
@@ -1028,10 +1074,12 @@ string convert_infix_to_postfix(string infix) {
 	    //print_tokens(tokens);
 	    break;
 	  }
-	}
+	  }
 
-	// Looks like this code binds the right arg
-   // (and is broken)
+	  // Handle loop end condition: if we are all the way back to the beginning
+	  // of the expression, then we never broken out of the loop and the left
+	  // parent was not placed.  Re-run the loop body once more for the first
+	  // character of the string.
 
 	  if (paren_iterator == tokens.begin()) {
 	    // skip over a matched set of parens
@@ -1087,21 +1135,43 @@ string convert_infix_to_postfix(string infix) {
 	    //exit(1);
 	  }
 
+
+	  // do not put the left paren just after an operator.  this is only an issue
+	  // when doing binary operators with higher precedence than unary operators,
+	  // such as ** and m
 	  if (paren_count == 0) {
+	    int insert_paren = 1;
+	    // check for fcn
+	    for (int k=0; k < fcn_num; k++) {
+	      if ((*paren_iterator).compare(fcn_name[k]) == 0) {
+		insert_paren = 0;
+		break;
+	      }
+	    }
+
 	    // and insert a right paren here
-	    tokens.insert(++paren_iterator, ")");
+	    if (insert_paren) {
+	      tokens.insert(++paren_iterator, ")");
 		//--paren_iterator; /// TESTING..
 	    //cout << "inserting )\n";
 	    //print_tokens(tokens);	    
-  break;
+	    break;
+	    }
 	  }
-	  }
+      }
       //cout << "done with )\n";
 	
 
 
       
       theiterator--;
+
+
+      // print string sofar
+      //print_tokens(tokens);
+      //cerr << endl;
+
+
       }
 
 	  // Loop end conditions
@@ -1123,8 +1193,8 @@ string convert_infix_to_postfix(string infix) {
 	}
   }
  
-  //cout << "\n";
-  //cout << "New String:\n";
+  //cerr << "\n";
+  //cerr << "New String:\n";
   
   //print_tokens(tokens);
 

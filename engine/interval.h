@@ -79,7 +79,7 @@ inline float interval_t::get_length() {
 
 inline  void interval_t::set_real_interval(float lower_in, float upper_in) {    
     if (lower_in > upper_in) {
-      cerr << "Out of order interval!!!";
+      cerr << "Out of order interval!!!" << lower_in << " " << upper_in;
       exit(1);
     }
 		  
