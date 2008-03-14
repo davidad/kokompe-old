@@ -16,6 +16,7 @@ import java.awt.event.*;
 import java.awt.geom.*;
 
 import javax.media.opengl.*;
+import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 
 import com.sun.opengl.util.*;
@@ -27,6 +28,7 @@ import java.lang.Math;
  *  Originally adapted from Gears demo by Brian Paul */
 
 public class Viewer implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener {
+	static Frame frame;
 	
 	public static void main(String[] args) {
    
@@ -34,7 +36,7 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 	if (appname == null) {
 		appname = "KOKOMPE Viewer";
 	}	
-	Frame frame = new Frame(appname);
+	frame = new Frame(appname);
     GLCanvas canvas = new GLCanvas();
     
  
@@ -149,7 +151,7 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 	    gl.glMaterialfv(GL.GL_FRONT, GL.GL_EMISSION, materialEmissionColor, 0);
 	    gl.glColorMaterial(GL.GL_FRONT, GL.GL_AMBIENT_AND_DIFFUSE);
 
-	    
+
 	// ******** INITIALIZE ROTATION MATRICIES FOR ARCBALL ROTATION
 		
 	// Set up the rotation storage matricies
@@ -232,6 +234,8 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
   public boolean updateModel(GL gl) {
 	  int numStlFacets = 0;
 	  byte [] facetdata = new byte[0];
+	  
+	  try {
 	  
 	  try {
 			
@@ -460,13 +464,23 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		}
 		progressBar.setString("");
 		
+	  }
+	  catch (OutOfMemoryError e) {
+		
+		outOfMemoryBox.start();
+  	}
 		return(true);
 	}
 		
   
-  
-  
-  
+  Thread outOfMemoryBox = new Thread() {
+	  public void run() {		 
+	     JOptionPane.showMessageDialog(null, "Viewer out of memory.", "KOKOMPE Viewer", JOptionPane.ERROR_MESSAGE);
+	     System.exit(1);
+	  }  
+  };  
+
+   
   public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
     windowAspectRatio = (float)height / (float)width;			
   }
