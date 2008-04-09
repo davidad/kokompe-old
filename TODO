@@ -53,12 +53,12 @@ wireframe mode
 
 box next to render for which part you want to render (DONE!)
 
-textures/colors?
+textures/colors? via viewer KAF -> (DONE)
 
 *******
 
 have viewer show multiple STL, each with center coords, (rotation?)
-and color/texture.  
+and color/texture. (DONE)
 
 ability to specify multiple things in python
    mutltiple objects to render
@@ -97,7 +97,7 @@ efficient assembly mode
 exexfile / use alias
 
 easy-to-identify button leading to nice, clear readable in
-20 seconds getting started page
+20 seconds getting started page (DONE)
 
 trap for empty and display welcome screen
 

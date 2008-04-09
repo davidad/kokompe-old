@@ -4,56 +4,67 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-import java.util.Properties;
 import java.io.*;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.ListIterator;
+import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
 
 import javax.media.opengl.*;
 import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 
 import com.sun.opengl.util.*;
-import java.lang.Math;
+
 
 /*  Kokompe Java Viewer 0.2
  *  By Ara Knaian, 2008
- *  
+ *
  *  Originally adapted from Gears demo by Brian Paul */
 
-public class Viewer implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener {
+public class Viewer implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
 	static Frame frame;
-	
+	static String defaultURL;
+
 	public static void main(String[] args) {
-   
-	String appname = System.getProperty("jnlp.title");	
+
+	String appname = System.getProperty("jnlp.title");
 	if (appname == null) {
 		appname = "KOKOMPE Viewer";
-	}	
+	}
+
+	if (args.length >= 1) {
+		defaultURL = args[0];
+	}
+	else {
+		defaultURL = "http://phmgrid1.media.mit.edu/kokompe/STL/teapot.stl";
+	}
+
 	frame = new Frame(appname);
     GLCanvas canvas = new GLCanvas();
-    
- 
+
     progressBar = new JProgressBar(0, 100);
     progressBar.setValue(0);
     progressBar.setStringPainted(true);
-   
-    
+
     canvas.addGLEventListener(new Viewer());
     frame.add(canvas, BorderLayout.CENTER);
-    
+
     frame.add(progressBar, BorderLayout.PAGE_END);
     frame.setSize(600, 600);
-    
+
     Point windowCorner = new Point(50,50);
     frame.setLocation(windowCorner);
-    
+
     final Animator animator = new Animator(canvas);
     frame.addWindowListener(new WindowAdapter() {
         public void windowClosing(WindowEvent e) {
@@ -68,12 +79,11 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
             }).start();
         }
       });
-    frame.show();
+    frame.setVisible(true);
     animator.start();
   }
 
   static private JProgressBar progressBar;
-  private int gear1;
   private int prevMouseX, prevMouseY;
   private boolean mouseRButtonDown = false;
   private Vector3 rotAxis;
@@ -89,12 +99,16 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
   Vector3 lastPanVector = new Vector3();
   URL stlfile;
 
-  Timer urlCheckTimer; 
+  Timer urlCheckTimer;
   long urlLastModified = 0;
   boolean newData = true;
-  
+  boolean assemblyMode;
+
+  HashMap<String,mapentry> urlMap;
+  LinkedList<part> partList;
+
   private int readIntLittleEndian(DataInputStream in) throws IOException {
-	  
+
 	 // 4 bytes
 	   int accum = 0;
 	   for ( int shiftBy=0; shiftBy<32; shiftBy+=8 )
@@ -102,26 +116,23 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 	      accum |= ( in.readByte() & 0xff ) << shiftBy;
 	      }
 	   return accum;
-	  
 
   }
-  
+
   public void init(GLAutoDrawable drawable) {
-    // Use debug pipeline
-    // drawable.setGL(new DebugGL(drawable.getGL()));
 
 		// ************** SET UP TO DRAW WINDOW
-		
+
 	    GL gl = drawable.getGL();
 
 	    System.err.println("INIT GL IS: " + gl.getClass().getName());
 	    System.err.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
 
 	    gl.setSwapInterval(1);
-	  
+
 	    // Position of the Light
 	    float pos[] = {60.0f, 60.0f, 120.0f, 0.0f };
-	    // Color of the Lighting 
+	    // Color of the Lighting
 	    float ambientColor[] = {0.2f, 0.2f, 0.2f, 1.0f};
 	    float diffuseColor[] = {0.3f, 0.3f, 0.3f, 1.0f};
 	    float specularColor[] = {0.2f, 0.2f, 0.2f, 1.0f};
@@ -131,29 +142,29 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 	    // ambient and diffuse are set by glColor
 	    float materialSpecularColor[] = {0.05f, 0.05f, 0.05f, 1.0f};  // set to 0 to diasable shadows
 	    float materialEmissionColor[] = {0.0f, 0.0f, 0.0f, 1.0f};     // set to nonzero to make object glow
-	    
+
 	    // ************* SET UP OPENGLSCENE LIGHTING ****************************
-	    
+
 	    gl.glLightfv(GL.GL_LIGHT0, GL.GL_POSITION, pos, 0);
-	    
+
 	    // my params
 	    gl.glLightfv(GL.GL_LIGHT0, GL.GL_AMBIENT, ambientColor, 0);
 	    gl.glLightfv(GL.GL_LIGHT0, GL.GL_DIFFUSE, diffuseColor, 0);
 	    gl.glLightfv(GL.GL_LIGHT0, GL.GL_SPECULAR, specularColor, 0);
-	    
+
 	    gl.glEnable(GL.GL_CULL_FACE);
 	    gl.glEnable(GL.GL_LIGHTING);
 	    gl.glEnable(GL.GL_LIGHT0);
 	    gl.glEnable(GL.GL_DEPTH_TEST);
-	    gl.glEnable(GL.GL_COLOR_MATERIAL);        
-	    
+	    gl.glEnable(GL.GL_COLOR_MATERIAL);
+
 	    gl.glMaterialfv(GL.GL_FRONT, GL.GL_SPECULAR, materialSpecularColor, 0);
 	    gl.glMaterialfv(GL.GL_FRONT, GL.GL_EMISSION, materialEmissionColor, 0);
 	    gl.glColorMaterial(GL.GL_FRONT, GL.GL_AMBIENT_AND_DIFFUSE);
 
 
 	// ******** INITIALIZE ROTATION MATRICIES FOR ARCBALL ROTATION
-		
+
 	// Set up the rotation storage matricies
 	curMatrix = FloatBuffer.allocate(16);
 	lastMatrix = FloatBuffer.allocate(16);
@@ -165,23 +176,16 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 	lastMatrix.put(5, 1.0f);
 	lastMatrix.put(10, 1.0f);
 	lastMatrix.put(15, 1.0f);
-	    
-	// ********** GET URL TO STL FILE TO DOWNLOAD ********************
-	  
-	// Get the URL pointing to the STL file from system.getproperties
-	// for now, it is hard-coded
-	// I modified the Viewer class to throw any exception "Throws "Exception""
-	// This is totally bogus --- it should check for malformed URL's and report an error.
-	// this code may need to be modified to work with proxy servers
-	
-	String urltext;
-	String defaulturl = "http://phmgrid1.media.mit.edu/kokompe/STL/teapot.stl"; 
 
-	urltext = System.getProperty("jnlp.stlurl");	
+	// ********** GET URL TO STL/KAF FILE TO DOWNLOAD ********************
+
+	String urltext;
+
+	urltext = System.getProperty("jnlp.stlurl");
 	if (urltext == null) {
-		urltext = defaulturl;
+		urltext = defaultURL;
 	}
-	
+
 	try {
 		stlfile = new URL(urltext);
 	}
@@ -189,93 +193,162 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		System.err.println("Malformed URL!");
 		System.exit(0);
 	}
-		
-   if(updateModel(gl))
-	   newData = false;
-    
+
+ 	partList = new LinkedList<part>();
+ 	urlMap = new HashMap<String,mapentry>();
+
+ 	// Check to see whether the file is part or assembly
+ 	// by checking the file extension.  kaf is assembly,
+ 	// stl is a part
+
+ 	String filename = stlfile.getFile();
+ 	filename = filename.toLowerCase();
+ 	if (filename.endsWith("kaf"))
+ 		assemblyMode = true;
+ 	else if (filename.endsWith("stl"))
+ 		assemblyMode = false;
+ 	else {
+ 		System.err.println("Unknown file extension, must be kaf or stl");
+ 		System.exit(0);
+ 	}
+
+ 	// Create assembly table.  (Even for parts, create a trivial
+ 	// assembly table with only one watched URL.)
+
+ 	if (assemblyMode) {
+ 		// Load initial data for assembly mode
+ 		updateAssemblyData(gl);
+ 		newData = false;
+ 	}
+ 	else {
+ 		// Load initial data for part mode
+ 		createTrivialAssemblyData(gl, urltext);
+ 	}
+	updateAssemblyDisplayLists(gl);
+
     // **************** SET UP MOUSE LISTENERS *****************
-    
+
     drawable.addMouseListener(this);
     drawable.addMouseMotionListener(this);
     drawable.addMouseWheelListener(this);
-    
-	
+
+    // *************** SETUP KEYBOARD LISTENERS
+
+    drawable.addKeyListener(this);
+
+    // *************** SETUP FILE UPDATE CHECK TIMER
+
     urlCheckTimer = new Timer();
     urlCheckTimer.scheduleAtFixedRate(new TimerTask() {
     	public void run() {
     		try {
-    			URLConnection filestream2 = stlfile.openConnection();
-    			filestream2.connect();
-    			System.err.println(" Last modified 1: " + filestream2.getLastModified() + " Length: " + filestream2.getContentLength());
-    			if ((filestream2.getLastModified() > urlLastModified) && (newData == false)) {
-    				// Let the user know rendering has started
-    				progressBar.setValue(0);
-    				progressBar.setIndeterminate(true);
-    				progressBar.setString("Rendering Model...");
-    				if (filestream2.getContentLength() >= 84) {
-    				
-    				newData = true;				// file must be long enough to be valid STL to start reading
+
+    			// If in assembly mode, check the assembly file for changes
+
+    			if (assemblyMode && (newData == false)) {
+    				URLConnection filestream2;
+    				filestream2 = stlfile.openConnection();
+    				filestream2.connect();
+    				if (filestream2.getLastModified() > urlLastModified) {
+    					if (filestream2.getContentLength() > 0) {
+    						newData = true;
+    					}
     				}
     			}
-    		
-    	}
-    		catch (IOException e) {
-    			System.out.println(" I/O Exception trying to re-read modification time!");	
+
+    			// Check the list of part URL's for changes, mark if needed
+    			Collection<mapentry> mapCollection = urlMap.values();
+    			Iterator<mapentry> mapIterator = mapCollection.iterator();
+    			while (mapIterator.hasNext()) {
+    				mapentry thisEntry = mapIterator.next();
+    				URLConnection filestream3;
+    				filestream3 = thisEntry.partURL.openConnection();
+    				filestream3.connect();
+    				if (filestream3.getLastModified() > thisEntry.urlLastModified) {
+    					progressBar.setValue(0);
+    					progressBar.setIndeterminate(true);
+    					progressBar.setString("Rendering Model...");
+    					if (filestream3.getContentLength() >= 84) {
+    						thisEntry.newData = true;
+    					}
+    				}
+    			}
+
     		}
-    	} 	
+
+    		catch (IOException e) {
+    			System.out.println(" I/O Exception trying to re-read modification time!");
+    		}
+    	}
     }, (long)1000, (long)1000);
-    
-    
-    
-    
+
 
   }
-  
-  public boolean updateModel(GL gl) {
+
+  public void updateAssemblyDisplayLists(GL gl) {
+	  Collection<mapentry> mapCollection = urlMap.values();
+	  Iterator<mapentry> mapIterator = mapCollection.iterator();
+	  while (mapIterator.hasNext()) {
+		  mapentry thisEntry = mapIterator.next();
+		  if (thisEntry.newData) {
+			// There is new data, so call updateModel to read it.
+			if(updateModel(gl, thisEntry))
+				thisEntry.newData = false;
+		  }
+	  }
+  }
+
+  public boolean updateModel(GL gl, mapentry thisEntry) {
 	  int numStlFacets = 0;
 	  byte [] facetdata = new byte[0];
-	  
-	  try {
-	  
-	  try {
-			
-		  	
-		  	URLConnection filestream;
-		  
-			filestream = stlfile.openConnection();
 
-			urlLastModified = filestream.getLastModified();
+	  try {
+
+		  try {
+
+
+		  	URLConnection filestream;
+
+			filestream = thisEntry.partURL.openConnection();
+
+			thisEntry.urlLastModified = filestream.getLastModified();
 			int urlContentLength = filestream.getContentLength();
-			
-			DataInputStream in = new DataInputStream(filestream.getInputStream());   
+
+			if (urlContentLength < 84) {
+				// file is not finished writing.  return false,
+				// which will result in a retry in a few moments
+				return(false);
+			}
+
+			DataInputStream in = new DataInputStream(filestream.getInputStream());
 
 			// Skip past the header
 			byte[] header;
 			header = new byte[80];
-			in.read(header, 0, 80);    
-			
-			for(int m=0;m<80;m++) {
+			in.read(header, 0, 80);
+
+			/*for(int m=0;m<80;m++) {
 				Byte firstchar = new Byte(header[m]);
 				System.err.print(firstchar.toString() + " ");
 			}
-			System.err.println();
-			
+			System.err.println();*/
+
 			// Read in the number of facets
 			numStlFacets = 0;
 			numStlFacets = readIntLittleEndian(in);
 			System.err.println("STL file in URL contains " + numStlFacets + " facets.");
-			
+
 			// Read the actual facet data
 			//	 facet data is 12 floats plus a short (4*12 + 2 = 50 bytes/facet)
-			
+
 			int bytesToRead = numStlFacets*50;
-			
+
 			if (urlContentLength < (bytesToRead + 84)) {
 				// file is not yet finished writing.
 				// return false, which will result in trying again in a moment
 				return(false);
 			}
-			
+
 			// OK, we have a valid file!!! set up progress bar
 			progressBar.setMinimum(0);
 			progressBar.setMaximum(bytesToRead);
@@ -284,12 +357,12 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 			Rectangle progressRect = progressBar.getBounds();
 			progressRect.x = 0;
 			progressRect.y = 0;
-			
-			
-			facetdata = new byte[bytesToRead];  
+
+
+			facetdata = new byte[bytesToRead];
 			int bytesRead = 0;
 			int bytesThisRead = 0;
-			
+
 			while ((bytesRead < bytesToRead) && (bytesThisRead != -1)) {
 				bytesThisRead = in.read(facetdata, bytesRead, bytesToRead - bytesRead);
 				if (bytesThisRead > 0) {
@@ -297,57 +370,45 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 					progressBar.setValue(bytesRead);
 					progressBar.setString("Downloading Model...");
 					progressBar.paintImmediately(progressRect);
-					
+
 				}
 				System.err.println("Bytes Read: " + bytesRead);
 			}
 
-			
 			// Done reading URL - close connection
-		    in.close();	
+		    in.close();
 
 		    if (bytesThisRead == -1) {
 		    	System.err.println("File ended unexpectedly while downloading");
 		    	return(false);
-		    }		    
+		    }
 		  }
 		catch (IOException e) {
 			System.err.println("I/O Exception reading data from server.");
 			return(false);
 		}
-	
+
 		progressBar.setString("Displaying Model...");
-		
-		if (numStlFacets > 0) {    
-		    
+
+		if (numStlFacets > 0) {
+
 		    // *************** REFORMAT DATA FOR OPENGL ***************************
 		    // Little Endian vs. Big Endian byte ordering, etc.
-		    
+
 		    float[] normalArray = new float[numStlFacets*9];
 		    float[] vertexArray = new float[numStlFacets*9];
 
 			// Now reformat data into float arrays
-		    
+
 		    int byteCtr = 0;
 		    int normalCtr = 0;
 		    int vertexCtr = 0;
-		    
-		      float []minBox = new float[3];
-		      float []maxBox = new float[3];
-		      int coordCtr = 0;    
-		      minBox[0] = Float.POSITIVE_INFINITY;
-		      minBox[1] = Float.POSITIVE_INFINITY;
-		      minBox[2] = Float.POSITIVE_INFINITY;
-		      maxBox[0] = Float.NEGATIVE_INFINITY;
-		      maxBox[1] = Float.NEGATIVE_INFINITY;
-		      maxBox[2] = Float.NEGATIVE_INFINITY;
-		    
-		    
-		    
+		    int coordCtr = 0;
+
 		    for (int facet = 0; facet < numStlFacets; facet++) {
-		    
-		      // Get the 3 floats defining the facet normal 	
-		      for (int normalFloat = 0; normalFloat < 3; normalFloat++) {	   	
+
+		      // Get the 3 floats defining the facet normal
+		      for (int normalFloat = 0; normalFloat < 3; normalFloat++) {
 		    	  int accum = 0;
 		    	  for ( int shiftBy=0; shiftBy<32; shiftBy+=8 ) {
 		    		  accum |= ( facetdata[byteCtr] & 0xff ) << shiftBy;
@@ -360,142 +421,230 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		    		  normalArray[normalCtr] = normalArray[normalCtr-3];
 		    		  normalCtr++;
 		      }
-		    
 
-		      
-		  
-		      //    Get the 9 floats defining the vertex coordinates 	
-		      for (int vertexFloat = 0; vertexFloat < 9; vertexFloat++) {	   	
+
+		      //    Get the 9 floats defining the vertex coordinates
+		      for (int vertexFloat = 0; vertexFloat < 9; vertexFloat++) {
 		    	  int accum = 0;
 		    	  for ( int shiftBy=0; shiftBy<32; shiftBy+=8 ) {
 		    		  accum |= ( facetdata[byteCtr++] & 0xff ) << shiftBy;
 			      }
-		    	  vertexArray[vertexCtr] = ((float)Float.intBitsToFloat( accum ));
-		    	  // find bounding box
-		    	  if (vertexArray[vertexCtr] > maxBox[coordCtr]) 
-		    		  maxBox[coordCtr] = vertexArray[vertexCtr];
-		    	  if (vertexArray[vertexCtr] < minBox[coordCtr])
-		    		  minBox[coordCtr] = vertexArray[vertexCtr];
+		    	  vertexArray[vertexCtr] = ((float)Float.intBitsToFloat( accum ) - 10.0f);
+		    	  // find bounding box and store
+		    	  if (vertexArray[vertexCtr] > thisEntry.maxBox[coordCtr])
+		    		  thisEntry.maxBox[coordCtr] = vertexArray[vertexCtr];
+		    	  if (vertexArray[vertexCtr] < thisEntry.minBox[coordCtr])
+		    		  thisEntry.minBox[coordCtr] = vertexArray[vertexCtr];
 		    	  vertexCtr++;
 		    	  coordCtr++;
 		    	  if (coordCtr == 3)
 		    		  coordCtr = 0;
-		      }	 
-		      
+		      }
+
 		      // Skip attribute byte count
 		      byteCtr += 2;
-		      
 		    }
-			  
-		    
-		    float []boxCenter = new float[3];
-		    float scaleFactor = 0;
-		    float newScaleFactor;
-		    
-		    for(int i=0; i<3; i++) {
-		    	boxCenter[i] = (maxBox[i] + minBox[i])*0.5f;
-		    	newScaleFactor = Math.max(Math.abs(maxBox[i]-boxCenter[i]), Math.abs(minBox[i]-boxCenter[i]));
-		    	if (newScaleFactor > scaleFactor)
-		    		scaleFactor = newScaleFactor;
-		    }
-		    
-		    
-		    // Translate and scale object
-		    scaleFactor = 1.0f/scaleFactor;
-		    
-		    coordCtr = 0;
-		    for (int k = 0; k < numStlFacets*9; k++) {
-			    
-		    	vertexArray[k] -= boxCenter[coordCtr++];
-		    	if (coordCtr == 3)
-		    		coordCtr = 0;
-		    	vertexArray[k] *= scaleFactor;
-		    }
-		    
-		    
+
 		    // ************** WRAP FLOAT ARRAYS IN FLOATBUFFER OBJECTS FOR JOGL
-		    
+
 		    ByteBuffer underlyingVertexBuffer = ByteBuffer.allocateDirect(numStlFacets*9*4).order(ByteOrder.nativeOrder());
-		    FloatBuffer vertexBuffer = 	underlyingVertexBuffer.asFloatBuffer();   
+		    FloatBuffer vertexBuffer = 	underlyingVertexBuffer.asFloatBuffer();
 		    vertexBuffer.put(vertexArray, 0, numStlFacets*9);
 		    vertexBuffer.position(0);
-		    
+
 		    ByteBuffer underlyingNormalBuffer = ByteBuffer.allocateDirect(numStlFacets*9*4).order(ByteOrder.nativeOrder());
-		    FloatBuffer normalBuffer = 	underlyingNormalBuffer.asFloatBuffer();   
+		    FloatBuffer normalBuffer = 	underlyingNormalBuffer.asFloatBuffer();
 		    normalBuffer.put(normalArray, 0, numStlFacets*9);
 		    normalBuffer.position(0);
-		    
-		     
-		   
-		            
+
+
 		    // ************ CREATE A DISPLAY LIST CONTAINING THE STL OBJECT *********
-		    
-		    gear1 = gl.glGenLists(1);
-		    gl.glNewList(gear1, GL.GL_COMPILE);
-		    
-		    //gl.glPushMatrix();
-		    //gl.glScalef(1.0f/scaleFactor, 1.0f/scaleFactor, 1.0f/scaleFactor);  
-		    //gl.glTranslatef(-boxCenter[0],-boxCenter[1], -boxCenter[2]); 
-		    
-		    // Red object --- change here to change color - RGB
-		    // (or could render color with a color array)
-		    gl.glColor3f(1.0f, 0.0f, 0.0f);
-		    
+
+		    gl.glNewList(thisEntry.displayList, GL.GL_COMPILE);
+
 		    // Create vertex arrays
 		    gl.glEnableClientState(GL.GL_VERTEX_ARRAY);
-		    gl.glEnableClientState(GL.GL_NORMAL_ARRAY); 
+		    gl.glEnableClientState(GL.GL_NORMAL_ARRAY);
 		    gl.glVertexPointer(3, GL.GL_FLOAT, 0, vertexBuffer);
 		    gl.glNormalPointer(GL.GL_FLOAT, 0, normalBuffer);
-		    
+
 		    // Draw Triangles
 		    gl.glDrawArrays(GL.GL_TRIANGLES, 0, numStlFacets*3);
 		    //gl.glPopMatrix();
-		    
-		    gl.glEndList();   
-	  
+
+		    gl.glEndList();
+
 		}
-		
+
 		else {
 			// display blank screen on valid STL file with no facets
-			 gear1 = gl.glGenLists(1);
-			 gl.glNewList(gear1, GL.GL_COMPILE);
+			 gl.glNewList(thisEntry.displayList, GL.GL_COMPILE);
 			 gl.glEndList();
-			
+
 		}
 		progressBar.setString("");
-		
+
 	  }
 	  catch (OutOfMemoryError e) {
-		
+
 		outOfMemoryBox.start();
-  	}
-		return(true);
+  	  }
+	  return(true);
 	}
-		
-  
+
+
   Thread outOfMemoryBox = new Thread() {
-	  public void run() {		 
+	  public void run() {
 	     JOptionPane.showMessageDialog(null, "Viewer out of memory.", "KOKOMPE Viewer", JOptionPane.ERROR_MESSAGE);
 	     System.exit(1);
-	  }  
-  };  
+	  }
+  };
 
-   
+
   public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-    windowAspectRatio = (float)height / (float)width;			
+    windowAspectRatio = (float)height / (float)width;
+  }
+
+  // called in part mode to create a single-entry
+  // assembly table and url map to just display a part
+  public void createTrivialAssemblyData(GL gl, String urltext) {
+
+	  try {
+
+		  partList.clear();
+
+		  part thisPart = new part();
+		  // Set default identity Modelview Matrix
+		  thisPart.modelviewMatrix[0] = 1.0f;
+		  thisPart.modelviewMatrix[1] = 0.0f;
+		  thisPart.modelviewMatrix[2] = 0.0f;
+		  thisPart.modelviewMatrix[3] = 0.0f;
+
+		  thisPart.modelviewMatrix[4] = 0.0f;
+		  thisPart.modelviewMatrix[5] = 1.0f;
+		  thisPart.modelviewMatrix[6] = 0.0f;
+		  thisPart.modelviewMatrix[7] = 0.0f;
+
+		  thisPart.modelviewMatrix[8] = 0.0f;
+		  thisPart.modelviewMatrix[9] = 0.0f;
+		  thisPart.modelviewMatrix[10] = 1.0f;
+		  thisPart.modelviewMatrix[11] = 0.0f;
+
+		  thisPart.modelviewMatrix[12] = 0.0f;
+		  thisPart.modelviewMatrix[13] = 0.0f;
+		  thisPart.modelviewMatrix[14] = 0.0f;
+		  thisPart.modelviewMatrix[15] = 1.0f;
+
+		  // Set part color to default red
+		  thisPart.color[0] = 1.0f;
+		  thisPart.color[1] = 0.0f;
+		  thisPart.color[2] = 0.0f;
+
+		  thisPart.partURL = new String(urltext);
+
+		  partList.add(thisPart);
+
+		  // add an entry to the URL hashtable for the part
+
+		  mapentry thisEntry = new mapentry();
+		  thisEntry.partURL = new URL(thisPart.partURL);
+		  thisEntry.urlLastModified = 0;
+		  thisEntry.newData = true;
+		  thisEntry.displayList = gl.glGenLists(1); // make a new display list
+		  urlMap.put(thisPart.partURL, thisEntry);
+
+	  }
+	  catch (IOException e) {
+		  System.out.println("Malformed URL attempting to create assembly data for single part viewing.");
+		  System.exit(1);
+	  }
+  }
+
+  // in assembly mode, calling this function re-reads the assembly
+  // file from stlurl and updates the urlMap table and the drawTable
+  public void updateAssemblyData(GL gl) {
+
+	  System.err.println("Updating assembly data.");
+	  // Read in the assembly file
+	  try {
+
+		  URLConnection filestream = stlfile.openConnection();
+		  urlLastModified = filestream.getLastModified();
+
+		  InputStreamReader in2 = new InputStreamReader(filestream.getInputStream());
+		  BufferedReader in = new BufferedReader(in2);
+
+		  partList.clear();
+		  boolean readError = false;
+		  while (in.ready() && (readError == false)) {
+
+			  part thisPart = new part();
+			  try {
+				  String nextLine = in.readLine();
+				  StringTokenizer tokenizer = new StringTokenizer(nextLine, " [],", false);
+
+				  // Read part URL string
+				  thisPart.partURL = tokenizer.nextToken();
+				  // Read modelview matrix
+				  Float thisElement;
+				  int i;
+				  for (i=0; i<16; i++) {
+					  thisElement = Float.valueOf(tokenizer.nextToken());
+					  thisPart.modelviewMatrix[i] = thisElement;
+				  }
+				  // Read color vector
+				  for (i=0; i<3; i++) {
+					  thisElement = Float.valueOf(tokenizer.nextToken());
+				  thisPart.color[i] = thisElement;
+				  }
+			  }
+			  catch (Exception e) {
+				  readError = true;
+			  }
+
+			  if (readError == false) {
+				  partList.add(thisPart);
+
+				  // Now, check to see if this URL is in the urlMap, and
+				  // add it if not
+				  if (urlMap.containsKey(thisPart.partURL) == false) {
+					  mapentry thisEntry = new mapentry();
+					  thisEntry.partURL = new URL(thisPart.partURL);
+					  thisEntry.urlLastModified = 0;
+					  thisEntry.newData = true; // is this right?
+					  thisEntry.displayList = gl.glGenLists(1); // make a new display list
+					  urlMap.put(thisPart.partURL, thisEntry);
+				  }
+			  }
+		  }
+
+		  // TODO: At some point, it might be nice to garbage-collect
+		  // no-longer-needed display lists here, but this is not necessarily
+		  // even desirable (now we are caching display lists!) and is extra
+		  // work and may introduce extra bugs, so I am going to put this off
+		  // for now.
+
+	  }
+	  catch (IOException e) {
+		  System.out.println("I/O Exception reading assembly file.");
+	  }
   }
 
   public void display(GLAutoDrawable drawable) {
-    	
 	float viewDistance = 6.0f;
+    GL gl = drawable.getGL();
 
-    GL gl = drawable.getGL();  
-    
-    if (newData){
-    	if(updateModel(gl));
+    // Check for updates to assembly file
+    if (assemblyMode && newData) {
+    	updateAssemblyData(gl);
     	newData = false;
     }
-    
+
+    // Check for updates to parts
+    updateAssemblyDisplayLists(gl);
+
+    // OPENGL CONFIGURATION
+
     if ((drawable instanceof GLJPanel) &&
         !((GLJPanel) drawable).isOpaque() &&
         ((GLJPanel) drawable).shouldPreserveColorBufferIfTranslucent()) {
@@ -503,43 +652,82 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     } else {
       gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
     }
-    
+
     // Set up the projection matrix
     gl.glMatrixMode(GL.GL_PROJECTION);
     gl.glLoadIdentity();
     gl.glOrtho(-1.0f*zoomFactor, 1.0f*zoomFactor, -windowAspectRatio*zoomFactor, windowAspectRatio*zoomFactor, viewDistance*zoomFactor - 2.0f, viewDistance*zoomFactor + 2.0f);
- 
+
    // gl.glPushMatrix();
     gl.glMatrixMode(GL.GL_MODELVIEW);
 
     // Start un-rotated
     gl.glLoadIdentity();
-    
+
     // Translate first to pan object
     gl.glTranslatef(panVector.x, panVector.y, panVector.z);
     gl.glTranslatef(lastPanVector.x, lastPanVector.y, lastPanVector.z);
-    
-    
+
+
    // Translate last to move the rotated object away from the viewer
     gl.glTranslatef(0.0f, 0.0f, -viewDistance*zoomFactor);
-    
+
     // Current rotation
     if (rotationSet) {
      	gl.glRotatef(rotAngle, rotAxis.x, rotAxis.y, rotAxis.z);
     }
-    
+
     // Apply rotation from previous time
     gl.glMultMatrixf(lastMatrix);
-    
+
     // Store the current matrix; when the mouse is released, it becomes the last
     gl.glGetFloatv(GL.GL_MODELVIEW_MATRIX, curMatrix);
-    
-    // Draw the object
-    gl.glCallList(gear1);
-   // gl.glPopMatrix();    
-	
+
+    // Determine the global translation and scaling required for the assembly.
+    // Run through the parts list and create a global bounding box
+    ListIterator<part> partPreIterator = partList.listIterator();
+    Vector3 minBox = new Vector3();
+    Vector3 maxBox = new Vector3();
+    Vector3[] corners;
+    int i;
+
+    minBox.setToMax();
+    maxBox.setToMin();
+
+    while (partPreIterator.hasNext()) {
+    	part prePart = partPreIterator.next();
+    	mapentry preEntry = urlMap.get(prePart.partURL);
+
+    	Vector3 thisMaxBox = new Vector3(preEntry.maxBox[0], preEntry.maxBox[1],preEntry.maxBox[2]);
+    	Vector3 thisMinBox = new Vector3(preEntry.minBox[0], preEntry.minBox[1],preEntry.minBox[2]);
+
+    	corners = Vector3.constructCorners(thisMinBox, thisMaxBox);
+
+    	for (i=0; i<8; i++) {
+    		corners[i] = Vector3.transform(prePart.modelviewMatrix, corners[i]);
+    		minBox.setMinimumComponents(corners[i]);
+    		maxBox.setMaximumComponents(corners[i]);
+    	}
+    }
+
+    Vector3 boxCenter = Vector3.mul(Vector3.add(maxBox, minBox), 0.5f);
+    float scaleFactor = 1.0f/Vector3.computeScaleFactor(maxBox, minBox, boxCenter);
+    gl.glScalef(scaleFactor, scaleFactor, scaleFactor);
+    gl.glTranslatef(-boxCenter.x, -boxCenter.y, -boxCenter.z);
+
+    // Run through the part list and draw all the parts
+    ListIterator<part> partIterator = partList.listIterator();
+    while (partIterator.hasNext()) {
+    	part thisPart = partIterator.next();
+    	gl.glPushMatrix();
+    	gl.glColor3f(thisPart.color[0], thisPart.color[1], thisPart.color[2]);
+    	gl.glMultMatrixf(thisPart.modelviewMatrix, 0);
+    	mapentry thisEntry = urlMap.get(thisPart.partURL);
+    	gl.glCallList(thisEntry.displayList);
+    	gl.glPopMatrix();
+    }
   }
-  
+
   // Methods required for the implementation of MouseListener
   public void displayChanged(GLAutoDrawable drawable, boolean modeChanged, boolean deviceChanged) {}
   public void mouseEntered(MouseEvent e) {}
@@ -548,17 +736,17 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
   public void mousePressed(MouseEvent e) {
     prevMouseX = e.getX();
     prevMouseY = e.getY();
-    
-    if ((e.getModifiers() & e.BUTTON3_MASK) != 0) {
+
+    if ((e.getModifiers() & InputEvent.BUTTON3_MASK) != 0) {
       mouseRButtonDown = true;
-    }  
+    }
   }
-    
+
   public void mouseReleased(MouseEvent e) {
-    if ((e.getModifiers() & e.BUTTON3_MASK) != 0) {
+    if ((e.getModifiers() & InputEvent.BUTTON3_MASK) != 0) {
       mouseRButtonDown = false;
     }
-    
+
     // When the mouse button goes up, copy the rotational part
     // of curMatrix into lastMatrix --- this is the starting point
     // for the current arcball rotation.
@@ -572,26 +760,26 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     lastMatrix.put(12, 0.0f);
     lastMatrix.put(13, 0.0f);
     lastMatrix.put(14, 0.0f);
-    lastMatrix.put(15, 1.0f); 
+    lastMatrix.put(15, 1.0f);
     rotAngle = 0.0f;  // once the mouse goes up, rotation is over
-    
+
     // update the pan vector base
     lastPanVector = Vector3.add(lastPanVector, panVector);
     // Panning stops when mouse is released
     panVector.clear();
-    
+
   }
-    
+
   public void mouseClicked(MouseEvent e) {}
-    
+
   // Methods required for the implementation of MouseMotionListener
   public void mouseDragged(MouseEvent e) {
     int x = e.getX();
     int y = e.getY();
     Dimension size = e.getComponent().getSize();
 
-    
-    
+
+
     if (mouseRButtonDown) {
     	// If right button is down, pan
     	panVector.x = 2.0f * zoomFactor * ((float)x - (float)prevMouseX) / ( (float)size.width );
@@ -602,13 +790,13 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     else
     {
     	// othwise, rotate
-    
+
     	Vector3 lastPoint = new Vector3();
     	Vector3 curPoint = new Vector3();
     	lastPoint.setArcballPos(prevMouseX, prevMouseY, size.width, size.height);
     	curPoint.setArcballPos(x, y, size.width, size.height);
     	Vector3 arcBallVector = Vector3.sub(curPoint, lastPoint);
-    
+
     	float scale_factor = 180.0f * zoomFactor;
     	rotAngle = arcBallVector.length() * scale_factor;
     	rotAxis = Vector3.cross(lastPoint, curPoint);
@@ -616,21 +804,31 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     	rotationSet = true;
     }
   }
-    
+
   public void mouseMoved(MouseEvent e) {}
 
   public void mouseWheelMoved(MouseWheelEvent e) {
       int notches = e.getWheelRotation();
-      int x = e.getX();
-      int y = e.getY();
-      Dimension size = e.getComponent().getSize();
 
       if (notches > 0)
     	  zoomFactor *= 1.1;
       else
     	  zoomFactor /= 1.1;
-  
-  }
-  
-}
 
+  }
+
+  public void keyTyped(KeyEvent e) {}
+  public void keyReleased(KeyEvent e) {}
+
+  // Implement keyboard +/- zoom for systems
+  // without a mousewheel (like laptops)
+  public void keyPressed(KeyEvent e) {
+      int keyCode = e.getKeyCode();
+
+      if (keyCode == 45)
+    	  zoomFactor *= 1.1;
+      if (keyCode == 61)
+    	  zoomFactor /= 1.1;
+  }
+
+}

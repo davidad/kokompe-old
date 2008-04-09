@@ -9,12 +9,26 @@ allows it to be spun, zoomed, and panned on.
 The goal is to allow 3D viewing of objects
 from a web application.
 
+It watches the files it is displaying for 
+changes to their modification time, and redownloads
+them as changed, giving a dynamic update behavior.
+
+It can also display a KAF (Kokompe Assembly File)
+file, which is a simple text file listing a set
+of STL file URL's, each with it's own modelview 
+matrix and color.  It is smart about only downloading
+each STL file once, even if it shown multiple times,
+and about only re-downloading files when they are updated.
+
+
+
 How to Use
 ==========
 
 Left-click and drag to rotate.
 Right-click and drag to pan.
 Spin the mouse wheel to zoom.
+Alternately, Press + and - on the keyboard to zoom, if you dont have a mousewheel.
 
 How to Install / Integrate
 ==========================
@@ -33,19 +47,16 @@ binary STL file, via HTTP.  The URL
 it uses is set by the property 
 jnlp.stlurl, defined in the jnlp file.
 
+You can also give the URL as the first argument
+on the command line, for standalone use independent
+of java web start. e.g.
+
+java -classpath javaviewer.jar javaviewer.Viewer file://c:/foo.stl
+
+
+
 To-Do
 -----
-
-* Exception handling - what to do about bad URL's, 
-dropped connections, GL errors, etc?  Right now
-there is not even a graceful exit.
-
-* Support for color.  Attribute byte count could
-  be used to support 15-bit color according to
-  Solidworks standard.  See:
-  http://en.wikipedia.org/wiki/STL_(file_format)
-
-* Progress bar to indicate downloading progress
 
 * Help tab to display a screen indicating how
  to pan/zoom, etc.
