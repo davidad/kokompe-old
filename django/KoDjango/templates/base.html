@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<title>{%block title%}Kokompe{%endblock%}</title>
+{%block meta%}
+	<meta name="description" content="{%block metadescription%}Digital Fabrication Schematics Warehouse and Design tool{%endblock%}"/>
+	<meta name="keywords" content="{%block metakeywords%}Digital Fabrication, Schematics, Warehouse, Design, CAD, CAM{%endblock%}"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="Content-Language" content="{{LANGUAGE_CODE}}" />
+	<meta name="MSSmartTagsPreventParsing" content="true" />
+	<meta name="robots" content="index, follow" />
+	<meta name="distribution" content="global" />
+{%endblock%}
+{%block link%}
+	<link rel="Shortcut Icon" href="/favicon.ico" type="image/x-icon" />
+	<link rel="Start" href="/" />
+{%endblock%}
+{%block styles%}
+	<link rel="stylesheet" href="/Styles/clickmenu.css"/>
+	<link rel="stylesheet" href="/Styles/main.css"/>
+{%endblock%}
+{%block scripts%}
+	<script src="/Scripts/jquery.js"></script>
+	<script src="/Scripts/jquery.clickmenu.js"></script>
+	<script src="/Scripts/UserManager.js"></script>
+	<script src="/Scripts/LineNumbers.js"></script>
+	<script>
+		function init() {
+			$('#menu').clickMenu();
+			{%block localinit%}
+			{%endblock%}
+		}
+		$(init);
+	</script>
+{%endblock%}
+
+</head>
+<body>
+
+<div class="wrap">
+
+        <div id="header">
+		<div id="logo">Kokompe</div>
+
+		<ul id="menu">
+			<li>Project
+				<ul>
+					<li>Open...</li>
+					<li>Save...</li>
+				</ul>
+			</li>
+			<li>Tools
+				<ul>
+					<li>Copy</li>
+					<li>Cut</li>
+					<li>Paste</li>
+				</ul>
+			</li>
+			<li>Inventory
+				<ul>
+					<li>Search stock...</li>
+					<li>Select material...</li>
+					<li>Select device...</li>
+				</ul>
+			</li>
+			<li>Warehouse</li>
+			<li>Help</li>
+		</ul>
+	</div>
+
+	<div class="content">
+	{%block content%}
+	This is the base template	
+	{%endblock%}
+	</div>
+
+	<div class="footer">
+		<a href="/About/Copyright">&copy; The Kokompe Authors, 2008</a><br/>
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">
+		<img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/80x15.png" />
+		</a>
+	</div>
+
+</div>
+</body>
+</html>

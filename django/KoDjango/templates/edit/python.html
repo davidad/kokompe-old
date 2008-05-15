@@ -1,0 +1,36 @@
+{%extends "base.html"%}
+{%block content%}
+<form name="editwindow" method="post" action="{{ThisPage}}">
+
+	<div class="titlebar">
+		<input class="title" type="text" size="10" name="model" value="{{Model}}"/> :: 
+		<a href="CAD/{{Model}}.cad">.cad</a> |
+		<a href="MATH/{{Model}}.math">.math</a> |
+		<a href="MATH/{{Model}}.postfix">.postfix</a> |
+		<a href="STL/{{Model}}.stl">.stl</a> |
+		<a href="JNLP/{{Model}}.jnlp">.jnlp</a> 
+	</div>
+
+	<!-- TOOLBAR -->
+	<div class="toolbar"> 
+		<input class="button" type="submit" name="do" value="LOAD FILE">
+		<input class="button" type="submit" name="do" value="SAVE FILE">
+		<input class="button" type="submit" name="do" value="SAVE & RENDER">
+		<input class="field" type="text" size="10" name="renderpart" value="{{Model}}">
+		<br>
+		Resolution: <input class="field" type="text" size="1" name="rendres" value="0.03">
+		&nbsp; &nbsp;
+		Render level:
+		<input type="radio" name="rendlevl" value="0" checked="checked">Zero
+		<input type="radio" name="rendlevl" value="1">One
+		<input type="radio" name="rendlevl" value="2">Two
+		<br>Render bounding box max dimension: <input class="field" type="text" size="1" name="rendboxl" value="2">
+	</div>
+
+	<!-- TEXT EDITOR AREA -->
+	<span class=editarea>
+		<textarea class="cad" id="cad_savecontent" name="cad_savecontent" cols=70 rows=33>{{CADContent}}</textarea>
+		<script type="text/javascript">createTextAreaWithLines('cad_savecontent');</script> 
+	</span>
+</form>
+{%endblock%}

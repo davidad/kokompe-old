@@ -1,0 +1,231 @@
+
+body {
+	font-family:			sans serif;
+	background:		#ffffff;
+	height:					100%;
+	margin:				0;
+	font-size:				10pt;
+}
+
+
+.wrap {
+	background:		#ffffff;
+	margin-left:			auto;
+	margin-right:		auto;
+	width:					900px;
+	border-left:			1px solid #c1580d;
+	border-right:		1px solid #c1580d;
+}
+
+#header {
+	width:					900px;
+	background:		#c1580d;	
+	padding-top:		10px;
+}
+
+#menu {
+	position:				relative;
+	right:					0px;
+	display:				inline;
+	float:					right;
+}
+
+a {
+	cursor:					pointer;
+}
+
+#menu li {
+	padding-top:		3px;
+	padding-bottom:	3px;	
+	background:		#a94d0b;
+}
+
+#menu li:hover {
+	color:					#f8f0ac;
+	background:		#c1580d;	
+}
+
+#menu li.main {
+	font-family:			arial;
+	color:					#FFFFFF;
+	text-decoration:	none;
+	padding-left:		12px;
+	padding-right:		12px;
+	padding-top:		24px;
+	padding-bottom:	6px;
+	background:		#c1580d;	
+}
+
+#menu li.main:hover, #menu li.main.hover {
+	padding-top:		24px;
+	color:					#f8f0ac;
+	background:		#a94d0b;
+}
+
+
+#logo {
+	color:					#f8f0ac;
+	display:				inline;
+	font-family:			arial;
+	font-size:				150%;
+	padding:				6px;
+	padding-top:		16px;
+	padding-right:		60px;
+	float:					left;
+}
+
+.content {
+	padding:				6px;
+	margin-top:			2em;
+}
+
+
+.dialog {
+	display:				none;
+	padding:				6px;
+	font-family:			arial;
+	background:		#FFFFFF;
+	position:				fixed;
+	top:						100px;
+	left:			33%;
+	right:		33%;
+	width:					33%;
+	border:				3px solid #7ed282;
+}
+
+
+.notice {
+	background:		url("/Images/next.png") #F1AD0A left no-repeat;
+	font-size:				8pt;
+	opacity:				0;
+	-moz-border-radius:	7px;
+	border-radius:		7px;
+	border:				1px solid #cc9309;
+	font-weight:			bold;
+	padding:				3px;
+	padding-left:		20px;
+}
+
+.opaque {
+	opacity:				1;
+}
+
+.transparent {
+	opacity:				0;
+}
+
+.footer {
+	width:					900px;
+	background:		#c1580d;
+	font-family:			arial;
+	font-size:				7pt;
+	padding-top:		5px;
+	padding-bottom:	2px;
+	color:					#ffffff;
+	text-align:			center;
+	bottom:				0;
+}
+
+
+.footer a {
+	font-family:			arial;
+	color:					#FFFFFF;
+	text-decoration:	none;
+	padding-left:		12px;
+	padding-right:		12px;
+	
+}
+
+
+/************************
+ *
+ *  From Amy's IDE:
+ *
+ ************************/
+
+
+.errormsg {
+  color: #FFFFFF;
+  background-color: #b22222;
+}
+
+.highlight {
+  color: #FFFFFF;
+  background-color: ffd700;
+}
+.toolbar {
+  color: #FFFFFF;
+  background-color: #708090;
+  padding: 0.2em;
+}
+.titlebar {
+  font-weight: bold;
+  font-size: 12pt;
+  color: #333333;
+  background-color: #d2691e;
+  padding: 0.5em;
+  border-style: solid;
+  border-width: 3px;
+  border-color: #e37a2f #c1580d #c1580d #e37a2f;
+}
+.title {
+  font-weight: bold;
+  font-size: 12pt;
+  color: #333333;
+  background-color: #d2691e;
+  border-style: solid;
+  border-width: 1px;
+  border-color:  #c1580d #e37a2f #e37a2f #c1580d;
+}
+a:link {
+  color: #ffffff;
+  backfround: transparent;
+}
+a:visited {
+  color: #ffffff;
+  backfround: transparent;
+}
+a:active {
+  color: #ffffff;
+  backfround: transparent;
+}
+textarea.cad {
+  width: 100%;
+  font-size:100%;
+  color: #111111;
+  background-color: #cccccc;
+}
+
+.editarea {
+  padding: 3em;
+}
+input.button {
+  font-size: 8pt;
+  color: #dddddd;
+  background-color: #607080;
+  border: solid 1px 1px 1px 1px;
+  border-color: #708090 #506070 #506070 #708090;
+}
+input.field {
+  background-color: #8090aa;
+  border: solid 2px;
+  border-color: #607080 #90a0b0 #90a0b0 #607080;
+  font-size: 8pt;
+}
+textarea.cad {
+  background-color: #99aabb;
+}
+#editContent{ 
+    margin-left:20px;
+    padding-left:100px; 
+    width:600px; 
+    height:200px; 
+    border:1px solid #666; 
+} 
+ .textAreaWithLines{ 
+   display:block; 
+   margin:5; 
+   border:1px solid #666; 
+   border-right:none; 
+   background:#708090;
+} 

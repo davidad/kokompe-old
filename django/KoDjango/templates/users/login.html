@@ -1,0 +1,22 @@
+{%extends "base.html"%}
+
+{%block loginblock%}{%endblock%}
+
+{%block content%}
+
+<div id="logindialog">
+	<table>
+		<tr>
+			<td><label for="login_username">User name:</td>
+			<td><input id="login_username"></td>
+		</tr>
+		<tr>
+			<td><label for="login_password">Password:</td>
+			<td><input id="login_password" type="password"></td>
+		</tr>
+	</table>
+	<br/>
+	<button id="login_submit" onclick="usermanager.login();">Log in</button>
+</div>
+
+{%endblock%}
