@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import *
 
-localstatic = "/home/spm/fablab/Kokompe/kokompe/django/Media/"
+localstatic = "../Media/"
 
 urlpatterns = patterns('',
 	# Dynamic media:
