@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
 
   tool_path path = compute_tool_path(results, tool_radius_in_lattice_units, max_error_in_lattice_units);
   
-  write_scaled_path(cout, path, xstart, ystart, xscale, yscale);
+  // write_scaled_gtp(cout, path, xstart, ystart, xscale, yscale);
   cout << endl;
 
 

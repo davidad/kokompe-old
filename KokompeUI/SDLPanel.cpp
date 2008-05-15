@@ -72,6 +72,7 @@ void SDLPanel::onIdle(wxIdleEvent &) {
 	// Ask SDL for the time in milliseconds
 	int tick = SDL_GetTicks();
     
+	// "Screensaver". Funkiness.
 	for (int y = 0; y < 480; y++) {
 		for (int x = 0; x < 640; x++) {
 			wxUint32 color = (y * y) + (x * x) + tick;

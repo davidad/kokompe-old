@@ -47,11 +47,8 @@ the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  0211
 		info.SetCopyright('© 2008 ')
 		info.SetWebSite('http://www.kokompe.net')
 		info.SetLicence(licence)
-		info.AddDeveloper('David Dalrymple')
-		info.AddDeveloper('Ara Knaian')
-		info.AddDeveloper('Smári McCarthy')
-		info.AddDeveloper('...')
-		# info.AddDocWriter('Smári McCarthy')
+		# info.AddDeveloper(' ')
+		# info.AddDocWriter(' ')
 		# info.AddArtist(' ')
 		# info.AddTranslator(' ')
 

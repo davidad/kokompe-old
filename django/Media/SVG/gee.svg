@@ -3,516 +3,558 @@
    "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
 <!--
 
-fab.svg
+gee.svg
 
-Neil Gershenfeld
+Based on fab.svg by Neil Gershenfeld
 
 (c) Massachusetts Institute of Technology 2007
 Permission granted for experimental and personal use;
 license for commercial sale available from MIT.
 
--->
-<svg xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink" 
-   width="1000" height="1000"
-   onmousemove="move(evt)">
-<script language="javascript">
-   <![CDATA[
-   date = "12/24/07"
-   svgNS = "http://www.w3.org/2000/svg"
-   xlinkNS="http://www.w3.org/1999/xlink"
-   size = 14
-   targ = null
-   max_node = Math.pow(2,32)-1
-   node_counter = 0
-   link_from_node = 0
-   link_to_node = 0
-   menu_names = ""
-   function msg(string) {
-      document.getElementById("message").firstChild.nodeValue = string
-      }
-   function mouse_over(evt) {
-      //
-      // highlight for mouseover
-      //
-      element = evt.target.parentNode
-      element.setAttribute("fill-opacity","1")
-      }
-   function mouse_out(evt) {
-      //
-      // remove highlight for mouseout
-      //
-      element = evt.target.parentNode
-      element.setAttribute("fill-opacity",".6")
-      }
-   function rm(id) {
-      //
-      // remove element
-      //
-      element = document.getElementById(id)
-      element.parentNode.removeChild(element)
-      }
-   function menu(x,y,width,height,names) {
-      //
-      // menu
-      //
-      if (menu_names == "") {
-         //
-	 // build menu if doesn't exist
-	 //
-	 menu_names = new Array
-         for (i = 0; i < names.length; ++i) {
-            button(x,y+i*height,width,height,names[i],'action(evt)')
-	    menu_names.push("button_"+names[i])
-            }
-         }
-      else {
-         //
-	 // otherwise remove it
-	 //
-         rm_menu()
-         }
-      }
-   function button(x,y,width,height,label,action) {
-      //
-      // add a button
-      //
-      var new_button = document.createElementNS(svgNS,"g");
-         new_button.setAttribute("transform","translate("+x+","+y+")")
-         new_button.setAttribute("onmousedown",action)
-         new_button.setAttribute("id","button_"+label)
-         new_button.setAttribute("onmouseover","mouse_over(evt)")
-         new_button.setAttribute("onmouseout","mouse_out(evt)")
-         new_button.setAttribute("fill-opacity",".6")
-      var new_rect = document.createElementNS(svgNS,"rect");
-         new_rect.setAttribute("width",width)
-         new_rect.setAttribute("height",height)
-         new_rect.setAttribute("fill","rgb(200,200,200)")
-         new_button.appendChild(new_rect);
-      var new_txt = document.createElementNS(svgNS,"text");
-         new_txt.setAttribute("x",width/2)
-         new_txt.setAttribute("y",height/2+5)
-         new_txt.setAttribute("font-size",size);
-         new_txt.setAttribute("text-anchor","middle");
-         new_txt.setAttribute("fill","rgb(225,0,0)")
-         var new_txt_node = document.createTextNode(label);
-         new_txt.appendChild(new_txt_node);
-         new_button.appendChild(new_txt);
-      document.getElementById("ui").appendChild(new_button);
-      }
-   function down(evt) {
-      //
-      // save mouse down info
-      //
-      x0 = evt.clientX
-      y0 = evt.clientY
-      targ = evt.target.parentNode.parentNode
-      mat = targ.getCTM()
-      dx = mat.e
-      dy = mat.f
-      }
-   function move(evt) {
-      //
-      // mouse move routine
-      //
-      if (targ) {
-         x = evt.clientX
-         y = evt.clientY
-	 node = parseInt(targ.getAttribute('id'))
-         if ((x != x0) & (y != y0)) {
-	    //
-	    // move node
-	    //
-            x += dx-x0
-            y += dy-y0
-            targ.setAttribute("transform","translate("+x+","+y+")")	    
-	    //
-	    // move outgoing links
-	    //
-            matfrom = targ.getCTM()
-            xfrom = matfrom.e
-            yfrom = matfrom.f
-	    offsets_element = document.getElementById(node).getElementsByTagName("offsets")
-	    offsets_childs = offsets_element[0].childNodes
-	    dxfrom = parseFloat(offsets_childs[0].getAttribute("x"))
-	    dyfrom = parseFloat(offsets_childs[0].getAttribute("y"))
- 	    to_element = document.getElementById(node).getElementsByTagName('to')
-	    if (to_element[0].hasChildNodes) {
-	       to_childs = to_element[0].childNodes
-	       }
-	    else {
-	       to_childs = []
-	       }
-	    for (i = 0; i < to_childs.length; ++i) {
- 	       link_to_node = to_childs[i].getAttribute("to_node")
-	       link_to_index = to_childs[i].getAttribute("to_index")
-               matto = document.getElementById(link_to_node).getCTM()
-               xto = matto.e
-               yto = matto.f
- 	       offsets_element = document.getElementById(link_to_node).getElementsByTagName("offsets")
-	       offsets_childs = offsets_element[0].childNodes
-   	       dxto = parseFloat(offsets_childs[link_to_index].getAttribute("x"))
-	       dyto = parseFloat(offsets_childs[link_to_index].getAttribute("y"))
-               document.getElementById(node+'_'+link_to_node+'_'+link_to_index).setAttribute("points",(xfrom+dxfrom)+','+(yfrom+dyfrom)+','+(xto+dxto)+','+(yto+dyto))
+Smári McCarthy
 
-	       }
-	    //
-	    // move incoming links
-	    //
-            matto = targ.getCTM()
-            xto = matto.e
-            yto = matto.f
- 	    from_element = document.getElementById(node).getElementsByTagName('from')
-	    if (from_element[0].hasChildNodes) {
-	       from_childs = from_element[0].childNodes
-	       }
-	    else {
-	       from_childs = []
-	       }
-	    for (i = 0; i < from_childs.length; ++i) {
- 	       link_from_node = from_childs[i].getAttribute("from_node")
-	       link_to_index = from_childs[i].getAttribute("to_index")
- 	       offsets_element = document.getElementById(node).getElementsByTagName("offsets")
-	       offsets_childs = offsets_element[0].childNodes
-   	       dxto = parseFloat(offsets_childs[link_to_index].getAttribute("x"))
-	       dyto = parseFloat(offsets_childs[link_to_index].getAttribute("y"))
-               matfrom = document.getElementById(link_from_node).getCTM()
-               xfrom = matfrom.e
-               yfrom = matfrom.f
- 	       offsets_element = document.getElementById(link_from_node).getElementsByTagName("offsets")
-	       offsets_childs = offsets_element[0].childNodes
-   	       dxfrom = parseFloat(offsets_childs[0].getAttribute("x"))
-	       dyfrom = parseFloat(offsets_childs[0].getAttribute("y"))
-               document.getElementById(link_from_node+'_'+node+'_'+link_to_index).setAttribute("points",(xfrom+dxfrom)+','+(yfrom+dyfrom)+','+(xto+dxto)+','+(yto+dyto))
-	       }
-	    }
-	 }
-      }
-   function link_from(evt) {
-      //
-      // link from a node
-      //
-      link_from_node = parseInt(evt.target.parentNode.getAttribute('id'))
-      if (link_to_node == 0) {
-         msg('link output to which input?')
-         }   
-      else {
-	 to_element = document.getElementById(link_from_node).getElementsByTagName('to')
-         var new_div = document.createElement("div");
-         new_div.setAttribute("to_node",link_to_node)
-         new_div.setAttribute("to_index",link_to_index)
-	 to_element[0].appendChild(new_div)
-	 from_element = document.getElementById(link_to_node).getElementsByTagName('from')
-         var new_div = document.createElement("div");
-         new_div.setAttribute("from_node",link_from_node)
-         new_div.setAttribute("to_index",link_to_index)
-	 from_element[0].appendChild(new_div)
-	 line(link_from_node,link_to_node,link_to_index)
-	 link_from_node = 0
-	 link_to_node = 0
-         }
-      }
-   function link_to(evt) {
-      //
-      // link to a node
-      //
-      link_to_node = parseInt(evt.target.parentNode.getAttribute('id'))
-      link_to_index = parseInt(evt.target.getAttribute('index'))
-      if (link_from_node == 0) {
-         msg('link input to which output?')
-	 }
-      else {
-	 to_element = document.getElementById(link_from_node).getElementsByTagName('to')
-         var new_div = document.createElement("div");
-         new_div.setAttribute("to_node",link_to_node)
-         new_div.setAttribute("to_index",link_to_index)
-	 to_element[0].appendChild(new_div)
-	 from_element = document.getElementById(link_to_node).getElementsByTagName('from')
-         var new_div = document.createElement("div");
-         new_div.setAttribute("from_node",link_from_node)
-         new_div.setAttribute("to_index",link_to_index)
-	 from_element[0].appendChild(new_div)
-	 line(link_from_node,link_to_node,link_to_index)
-	 link_from_node = 0
-	 link_to_node = 0
-         }
-      }
-   function add_node(x,y,name,value,id) { 
-      //
-      // add a node
-      //
-      var new_node = document.createElementNS(svgNS,"g");
-      new_node.setAttribute("name",name)
-      new_node.setAttribute("value",value)
-      new_node.setAttribute("transform","translate("+x+","+y+")")
-      new_node.setAttribute("id",id)
-      var new_from = document.createElement("from")
-      new_node.appendChild(new_from)
-      var new_to = document.createElement("to")
-      new_node.appendChild(new_to)
-      return new_node
-      }
-   function add_offsets(node) {
-      //
-      // add offsets to a node
-      //
-      var offsets = document.createElement("offsets");
-      node.appendChild(offsets)
-      return offsets
-      }
-   function clear(evt) {
-      msg('')
-      targ = null
-      }
-   function add_label(label,parent,height,width) {
-      var new_g = document.createElementNS(svgNS,"g");
-         new_g.setAttribute("onmouseover","msg('drag to move')")
-         new_g.setAttribute("onmousedown","down(evt)")
-         new_g.setAttribute("onmouseup","clear(evt)")
-         new_g.setAttribute("onmouseout","msg('')")
-	 new_g.setAttribute("label",label)
-      //
-      // define text
-      //
-      id = parent.getAttribute("id")
-      var txt = document.createElementNS(svgNS,"text")
-         txt.setAttribute("id",id+"label")
-         txt.setAttribute("font-size",size);
-         txt.setAttribute("text-anchor","middle");
-         txt.setAttribute("dominant-baseline","middle")
-         txt.setAttribute("fill","black")
-         txt_node = document.createTextNode(label)
-         txt.appendChild(txt_node)
-      //
-      // add rectangle
-      //
-      var name_rect = document.createElementNS(svgNS,"rect")
-         name_rect.setAttribute("width",width)
-         name_rect.setAttribute("height",height)
-         name_rect.setAttribute("fill","rgb(225,225,225)")
-      new_g.appendChild(name_rect)
-      //
-      // add text
-      //
-      txt.setAttribute("x",width/2)
-      txt.setAttribute("y",height/2)
-      new_g.appendChild(txt);
-      parent.appendChild(new_g)
-      }
-   function add_label_message_action(label,action,node) {
-      //
-      // add/change label message and mouse-up action
-      //
-      child = node.childNodes
-      for (i = 0; i < child.length; ++i) {
-         if (child[i].getAttribute("label") != null) {
-            child[i].setAttribute("onmouseover","msg('click to edit, drag to move')")
-            child[i].setAttribute("onmouseup",action)
-	    }
-	 }
-      }
-   function add_output(x,y,width,height,parent,offsets) {
-      var output = document.createElementNS(svgNS,"rect")
-      output.setAttribute("width",width)
-      output.setAttribute("height",height)
-      output.setAttribute("x",x)
-      output.setAttribute("y",y)
-      output.setAttribute("fill","rgb(100,225,100)")
-      output.setAttribute("onmouseover","msg('click to link')")
-      output.setAttribute("onmousedown","link_from(evt)")
-      output.setAttribute("onmouseup","clear(evt)")
-      output.setAttribute("onmouseout","msg('')")
-      parent.appendChild(output)
-      var new_div = document.createElement("div");
-      new_div.setAttribute("x",width/2)
-      new_div.setAttribute("y",-height/2)
-      offsets.appendChild(new_div)
-      }
-   function add_function_output(x,y,width,height,parent,offsets) {
-      var output = document.createElementNS(svgNS,"rect")
-      output.setAttribute("width",width)
-      output.setAttribute("height",height)
-      output.setAttribute("x",x)
-      output.setAttribute("y",y)
-      output.setAttribute("fill","rgb(100,225,100)")
-      output.setAttribute("onmouseover","msg('click to link')")
-      output.setAttribute("onmousedown","link_from(evt)")
-      output.setAttribute("onmouseup","clear(evt)")
-      output.setAttribute("onmouseout","msg('')")
-      parent.appendChild(output)
-      var new_div = document.createElement("div");
-      new_div.setAttribute("x",width/2)
-      new_div.setAttribute("y",-height/2)
-      offsets.appendChild(new_div)
-      }
-   function add_input(x,y,width,height,parent,offsets,index) {
-      //
-      // add inputs to node
-      //
-      var input = document.createElementNS(svgNS,"rect");
-      input.setAttribute("index",index)
-      input.setAttribute("width",width)
-      input.setAttribute("height",height)
-      input.setAttribute("x",x)
-      input.setAttribute("y",y)
-      input.setAttribute("fill","rgb(225,100,100)")
-      input.setAttribute("onmousedown","link_to(evt)")
-      input.setAttribute("onmouseover","msg('click to link')")
-      input.setAttribute("onmouseup","clear(evt)")
-      input.setAttribute("onmouseout","msg('')")
-      parent.appendChild(input);
-      var new_div = document.createElement("div");
-      new_div.setAttribute("x",x+width/2)
-      new_div.setAttribute("y",y+height/2)
-      offsets.appendChild(new_div)
-      }
-   function add_variable_input(x,y,width,height,parent,offsets,index) {
-      //
-      // add variable input to node
-      //
-      var input = document.createElementNS(svgNS,"rect");
-      input.setAttribute("index",index)
-      input.setAttribute("width",width)
-      input.setAttribute("height",height)
-      input.setAttribute("x",x)
-      input.setAttribute("y",y)
-      input.setAttribute("fill","rgb(225,100,100)")
-      input.setAttribute("onmousedown","link_to(evt)")
-      input.setAttribute("onmouseover","msg('click to link')")
-      input.setAttribute("onmouseup","clear(evt)")
-      input.setAttribute("onmouseout","msg('')")
-      parent.appendChild(input);
-      var new_div = document.createElement("div");
-      new_div.setAttribute("x",x+width/2)
-      new_div.setAttribute("y",y+height/2)
-      offsets.appendChild(new_div)
-      }
-   function add_named_variable_input(x,y,width,height,variable_name,parent,offsets,index) {
-      //
-      // add named variable input
-      //
-      id = parent.getAttribute("id")
-      var new_g = document.createElementNS(svgNS,"g");
-         new_g.setAttribute("id",id)
-         new_g.setAttribute("onmouseover","msg('click to link "+variable_name+"')")
-         new_g.setAttribute("onmousedown","link_to(evt)")
-         new_g.setAttribute("onmouseup","clear(evt)")
-         new_g.setAttribute("onmouseout","msg('')")
-	 new_g.setAttribute("label",label)
-      //
-      // define text
-      //
-      var txt = document.createElementNS(svgNS,"text")
-         txt.setAttribute("id","label")
-         txt.setAttribute("index","0"+index)
-         txt.setAttribute("font-size",size);
-         txt.setAttribute("text-anchor","middle");
-         txt.setAttribute("dominant-baseline","middle")
-         txt.setAttribute("fill","white")
-         txt_node = document.createTextNode(variable_name)
-         txt.appendChild(txt_node)
-      //
-      // add rectangle
-      //
-      var var_rect = document.createElementNS(svgNS,"rect");
-         var_rect.setAttribute("width",width)
-         var_rect.setAttribute("height",height)
-         var_rect.setAttribute("index","0"+index)
-         var_rect.setAttribute("x",x)
-         var_rect.setAttribute("y",height)
-         var_rect.setAttribute("fill","rgb(225,100,100)")
-      new_g.appendChild(var_rect)
-      //
-      // add text
-      //
-      txt.setAttribute("x",x+width/2)
-      txt.setAttribute("y",1.5*height)
-      new_g.appendChild(txt);
-      parent.appendChild(new_g)
-      //
-      // add offsets
-      //
-      var new_div = document.createElement("div");
-      new_div.setAttribute("x",x+width/2)
-      new_div.setAttribute("y",y+height/2)
-      offsets.appendChild(new_div)
-      }
-   function line(link_from_node,link_to_node,link_to_index) {
-      //
-      // add a line
-      //
-      var new_line = document.createElementNS(svgNS,"polyline");
-         new_line.setAttribute("id",link_from_node+'_'+link_to_node+'_'+link_to_index)
-         new_line.setAttribute("fill","none")
-         new_line.setAttribute("stroke","rgb(150,150,225)")
-         new_line.setAttribute("stroke-width","5")
-         mat0 = document.getElementById(link_from_node).getCTM()
-         x0 = mat0.e
-         y0 = mat0.f
-         mat1 = document.getElementById(link_to_node).getCTM()
-         x1 = mat1.e
-         y1 = mat1.f
-	 offsets_element = document.getElementById(link_from_node).getElementsByTagName('offsets')
-	 offsets_childs = offsets_element[0].childNodes
-         dx0 = parseFloat(offsets_childs[0].getAttribute("x"))
-         dy0 = parseFloat(offsets_childs[0].getAttribute("y"))
-	 offsets_element = document.getElementById(link_to_node).getElementsByTagName('offsets')
-	 offsets_childs = offsets_element[0].childNodes
-	 dx1 = parseFloat(offsets_childs[link_to_index].getAttribute("x"))
-	 dy1 = parseFloat(offsets_childs[link_to_index].getAttribute("y"))
-         new_line.setAttribute("points",(x0+dx0)+','+(y0+dy0)+','+(x1+dx1)+','+(y1+dy1))
-      canvas = document.getElementById("canvas")
-      canvas.insertBefore(new_line,canvas.firstChild);
-      }
-   function variable_form(name,value) {
-      //
-      // variable form handler
-      //
-      last_targ.setAttribute("name",name)
-      last_targ.setAttribute("value",value)
-      id = last_targ.getAttribute("id")
-      element = document.getElementById(id+"label")
-      if (name != "") {
-         txt_node = document.createTextNode(name)
-	 }
-      else {
-         txt_node = document.createTextNode(value)
-	 }
-      element.replaceChild(txt_node,element.childNodes[0])
-      win2.close()
-      }
-   function variable_up(evt) {
-      //
-      // edit variable name, value on mouse up
-      //
-      x = evt.clientX
-      y = evt.clientY
-      name = targ.getAttribute('name')
-      value = targ.getAttribute('value')
-      if ((x == x0) & (y == y0)) {
-         win2 = open('','fab','width=400,height=150')
-	 win2.document.write('\
-	    <form onSubmit="opener.variable_form(name.value,val.value)">\
-	    <input type="submit" value="enter"><br><br>\
-	    name: &nbsp; <input type="text" name="name" size="40" value="'+name+'"><br><br>\
-	    value: &nbsp; <input type="text" name="val" size="40" value="'+value+'"><br>\
-	    </form>\
-	    ')
-	 win2.document.close()
-	 last_targ = targ
-         targ = null
-         }
-      else {
-         msg('')
-         targ = null
-         }
-      }
-   function variable(x,y,name,value,id) {
-      //
-      // add a variable node
-      //
-      height = size
-      width = size
+(c) Nýsköpunarmiðstöð Íslands 2008
+
+-->
+<svg
+	xmlns="http://www.w3.org/2000/svg"
+	xmlns:xlink="http://www.w3.org/1999/xlink"  
+	width="1000" height="1000"
+	onmousemove="move(evt)">
+	
+<script language="javascript">
+<![CDATA[
+	date = "12/24/07"
+	svgNS = "http://www.w3.org/2000/svg"
+	xlinkNS="http://www.w3.org/1999/xlink"
+	size = 14
+	targ = null
+	max_node = Math.pow(2,32)-1
+	node_counter = 0
+	link_from_node = 0
+	link_to_node = 0
+	menu_names = ""
+	
+	nodes = []
+	
+	function msg(string) {
+		document.getElementById("message").firstChild.nodeValue = string
+	}
+	
+	function mouse_over(evt) {
+		//
+		// highlight for mouseover
+		//
+		element = evt.target.parentNode
+		element.setAttribute("fill-opacity","1")
+	}
+	
+	function mouse_out(evt) {
+		//
+		// remove highlight for mouseout
+		//
+		element = evt.target.parentNode
+		element.setAttribute("fill-opacity",".6")
+	}
+	
+	function rm(id) {
+		//
+		// remove element
+		//
+		element = document.getElementById(id)
+		element.parentNode.removeChild(element)
+	}
+	
+	function menu(x,y,width,height,names) {
+		//
+		// menu
+		//
+		if (menu_names == "") {
+			//
+			// build menu if doesn't exist
+			//
+			menu_names = new Array
+			for (i = 0; i < names.length; ++i) {
+				button(x,y+i*height,width,height,names[i],'action(evt)')
+				menu_names.push("button_"+names[i])
+			}
+		} else {
+			//
+			// otherwise remove it
+			//
+			rm_menu()
+		}
+	}
+	
+	function button(x,y,width,height,label,action) {
+		//
+		// add a button
+		//
+		var new_button = document.createElementNS(svgNS,"g");
+		new_button.setAttribute("transform","translate("+x+","+y+")")
+		new_button.setAttribute("onmousedown",action)
+		new_button.setAttribute("id","button_"+label)
+		new_button.setAttribute("onmouseover","mouse_over(evt)")
+		new_button.setAttribute("onmouseout","mouse_out(evt)")
+		new_button.setAttribute("fill-opacity",".6")
+		
+		var new_rect = document.createElementNS(svgNS,"rect");
+		new_rect.setAttribute("width",width)
+		new_rect.setAttribute("height",height)
+		new_rect.setAttribute("fill","rgb(200,200,200)")
+		new_button.appendChild(new_rect);
+		
+		var new_txt = document.createElementNS(svgNS,"text");
+		new_txt.setAttribute("x",width/2)
+		new_txt.setAttribute("y",height/2+5)
+		new_txt.setAttribute("font-size",size);
+		new_txt.setAttribute("text-anchor","middle");
+		new_txt.setAttribute("fill","rgb(225,0,0)")
+		
+		var new_txt_node = document.createTextNode(label);
+		new_txt.appendChild(new_txt_node);
+		new_button.appendChild(new_txt);
+		document.getElementById("ui").appendChild(new_button);
+	}
+	
+	function down(evt) {
+		//
+		// save mouse down info
+		//
+		x0 = evt.clientX
+		y0 = evt.clientY
+		targ = evt.target.parentNode.parentNode
+		mat = targ.getCTM()
+		dx = mat.e
+		dy = mat.f
+	}
+	
+	function move(evt) {
+		//
+		// mouse move routine
+		//
+		if (!targ) {
+			return;
+		}
+		x = evt.clientX
+		y = evt.clientY
+		node = parseInt(targ.getAttribute('id'))
+		if ((x != x0) & (y != y0)) {
+			//
+			// move node
+			//
+			x += dx-x0
+			y += dy-y0
+			targ.setAttribute("transform","translate("+x+","+y+")")	    
+			//
+			// move outgoing links
+			//
+			matfrom = targ.getCTM()
+			xfrom = matfrom.e
+			yfrom = matfrom.f
+			offsets_element = document.getElementById(node).getElementsByTagName("offsets")
+			offsets_childs = offsets_element[0].childNodes
+			dxfrom = parseFloat(offsets_childs[0].getAttribute("x"))
+			dyfrom = parseFloat(offsets_childs[0].getAttribute("y"))
+			to_element = document.getElementById(node).getElementsByTagName('to')
+			if (to_element[0].hasChildNodes) {
+				to_childs = to_element[0].childNodes
+			} else {
+				to_childs = []
+			}
+			for (i = 0; i < to_childs.length; ++i) {
+				link_to_node = to_childs[i].getAttribute("to_node")
+				link_to_index = to_childs[i].getAttribute("to_index")
+				matto = document.getElementById(link_to_node).getCTM()
+				xto = matto.e
+				yto = matto.f
+				offsets_element = document.getElementById(link_to_node).getElementsByTagName("offsets")
+				offsets_childs = offsets_element[0].childNodes
+				dxto = parseFloat(offsets_childs[link_to_index].getAttribute("x"))
+				dyto = parseFloat(offsets_childs[link_to_index].getAttribute("y"))
+				document.getElementById(node+'_'+link_to_node+'_'+link_to_index).setAttribute("points",(xfrom+dxfrom)+','+(yfrom+dyfrom)+','+(xto+dxto)+','+(yto+dyto))
+			}
+			//
+			// move incoming links
+			//
+			matto = targ.getCTM()
+			xto = matto.e
+			yto = matto.f
+			from_element = document.getElementById(node).getElementsByTagName('from')
+			if (from_element[0].hasChildNodes) {
+				from_childs = from_element[0].childNodes
+			} else {
+				from_childs = []
+			}
+			for (i = 0; i < from_childs.length; ++i) {
+				link_from_node = from_childs[i].getAttribute("from_node")
+				link_to_index = from_childs[i].getAttribute("to_index")
+				offsets_element = document.getElementById(node).getElementsByTagName("offsets")
+				offsets_childs = offsets_element[0].childNodes
+				dxto = parseFloat(offsets_childs[link_to_index].getAttribute("x"))
+				dyto = parseFloat(offsets_childs[link_to_index].getAttribute("y"))
+				matfrom = document.getElementById(link_from_node).getCTM()
+				xfrom = matfrom.e
+				yfrom = matfrom.f
+				offsets_element = document.getElementById(link_from_node).getElementsByTagName("offsets")
+				offsets_childs = offsets_element[0].childNodes
+				dxfrom = parseFloat(offsets_childs[0].getAttribute("x"))
+				dyfrom = parseFloat(offsets_childs[0].getAttribute("y"))
+				document.getElementById(link_from_node+'_'+node+'_'+link_to_index).setAttribute("points",(xfrom+dxfrom)+','+(yfrom+dyfrom)+','+(xto+dxto)+','+(yto+dyto))
+			}
+		}
+	}
+      
+      
+	function link_from(evt) {
+		//
+		// link from a node
+		//
+		link_from_node = parseInt(evt.target.parentNode.getAttribute('id'))
+		if (link_to_node == 0) {
+			msg('link output to which input?')
+		} else {
+			to_element = document.getElementById(link_from_node).getElementsByTagName('to')
+			var new_div = document.createElement("div");
+			new_div.setAttribute("to_node",link_to_node)
+			new_div.setAttribute("to_index",link_to_index)
+			to_element[0].appendChild(new_div)
+			from_element = document.getElementById(link_to_node).getElementsByTagName('from')
+			var new_div = document.createElement("div");
+			new_div.setAttribute("from_node",link_from_node)
+			new_div.setAttribute("to_index",link_to_index)
+			from_element[0].appendChild(new_div)
+			line(link_from_node,link_to_node,link_to_index)
+			link_from_node = 0
+			link_to_node = 0
+		}
+	}
+	
+	
+	function link_to(evt) {
+		//
+		// link to a node
+		//
+		link_to_node = parseInt(evt.target.parentNode.getAttribute('id'))
+		link_to_index = parseInt(evt.target.getAttribute('index'))
+		if (link_from_node == 0) {
+			msg('link input to which output?')
+		} else {
+			to_element = document.getElementById(link_from_node).getElementsByTagName('to')
+			var new_div = document.createElement("div");
+			new_div.setAttribute("to_node",link_to_node)
+			new_div.setAttribute("to_index",link_to_index)
+			to_element[0].appendChild(new_div)
+			from_element = document.getElementById(link_to_node).getElementsByTagName('from')
+			var new_div = document.createElement("div");
+			new_div.setAttribute("from_node",link_from_node)
+			new_div.setAttribute("to_index",link_to_index)
+			from_element[0].appendChild(new_div)
+			line(link_from_node,link_to_node,link_to_index)
+			link_from_node = 0
+			link_to_node = 0
+		}
+	}
+	
+	
+	function add_node(x,y,name,value,id) { 
+		//
+		// add a node
+		//
+		nodes[id] = {"id": id, "name": name, "value": value, "x": x, "y": y, "to": [], "from": []};
+		
+		var new_node = document.createElementNS(svgNS,"g");
+		new_node.setAttribute("name",name);
+		new_node.setAttribute("value",value);
+		new_node.setAttribute("transform","translate("+x+","+y+")");
+		new_node.setAttribute("id",id);
+		var new_from = document.createElement("from");
+		new_node.appendChild(new_from);
+		var new_to = document.createElement("to");
+		new_node.appendChild(new_to);
+		return new_node;
+	}
+	
+	function add_offsets(node) {
+	      //
+	      // add offsets to a node
+	      //
+	      var offsets = document.createElement("offsets");
+	      node.appendChild(offsets)
+	      return offsets
+	}
+	
+	function clear(evt) {
+		msg('')
+		targ = null
+	}
+	
+	function add_label(label,parent,height,width) {
+		var new_g = document.createElementNS(svgNS,"g");
+		new_g.setAttribute("onmouseover","msg('drag to move')")
+		new_g.setAttribute("onmousedown","down(evt)")
+		new_g.setAttribute("onmouseup","clear(evt)")
+		new_g.setAttribute("onmouseout","msg('')")
+		new_g.setAttribute("label",label)
+		//
+		// define text
+		//
+		id = parent.getAttribute("id")
+		var txt = document.createElementNS(svgNS,"text")
+		txt.setAttribute("id",id+"label")
+		txt.setAttribute("font-size",size);
+		txt.setAttribute("text-anchor","middle");
+		txt.setAttribute("dominant-baseline","middle")
+		txt.setAttribute("fill","black")
+		txt_node = document.createTextNode(label)
+		txt.appendChild(txt_node)
+		//
+		// add rectangle
+		//
+		var name_rect = document.createElementNS(svgNS,"rect")
+		name_rect.setAttribute("width",width)
+		name_rect.setAttribute("height",height)
+		name_rect.setAttribute("fill","rgb(225,225,225)")
+		new_g.appendChild(name_rect)
+		//
+		// add text
+		//
+		txt.setAttribute("x",width/2)
+		txt.setAttribute("y",height/2)
+		new_g.appendChild(txt);
+		parent.appendChild(new_g)
+	}
+	
+	
+	function add_label_message_action(label,action,node) {
+		//
+		// add/change label message and mouse-up action
+		//
+		child = node.childNodes
+		for (i = 0; i < child.length; ++i) {
+			if (child[i].getAttribute("label") != null) {
+				child[i].setAttribute("onmouseover","msg('click to edit, drag to move')")
+				child[i].setAttribute("onmouseup",action)
+			}
+		}
+	}
+	
+	
+	function add_output(x,y,width,height,parent,offsets) {
+		var output = document.createElementNS(svgNS,"rect")
+		output.setAttribute("width",width)
+		output.setAttribute("height",height)
+		output.setAttribute("x",x)
+		output.setAttribute("y",y)
+		output.setAttribute("fill","rgb(100,225,100)")
+		output.setAttribute("onmouseover","msg('click to link')")
+		output.setAttribute("onmousedown","link_from(evt)")
+		output.setAttribute("onmouseup","clear(evt)")
+		output.setAttribute("onmouseout","msg('')")
+		parent.appendChild(output)
+		var new_div = document.createElement("div");
+		new_div.setAttribute("x",width/2)
+		new_div.setAttribute("y",-height/2)
+		offsets.appendChild(new_div)
+	}
+	
+	
+	function add_function_output(x,y,width,height,parent,offsets) {
+		var output = document.createElementNS(svgNS,"rect")
+		output.setAttribute("width",width)
+		output.setAttribute("height",height)
+		output.setAttribute("x",x)
+		output.setAttribute("y",y)
+		output.setAttribute("fill","rgb(100,225,100)")
+		output.setAttribute("onmouseover","msg('click to link')")
+		output.setAttribute("onmousedown","link_from(evt)")
+		output.setAttribute("onmouseup","clear(evt)")
+		output.setAttribute("onmouseout","msg('')")
+		parent.appendChild(output)
+		var new_div = document.createElement("div");
+		new_div.setAttribute("x",width/2)
+		new_div.setAttribute("y",-height/2)
+		offsets.appendChild(new_div)
+	}
+	
+	
+	function add_input(x,y,width,height,parent,offsets,index) {
+		//
+		// add inputs to node
+		//
+		var input = document.createElementNS(svgNS,"rect");
+		input.setAttribute("index",index)
+		input.setAttribute("width",width)
+		input.setAttribute("height",height)
+		input.setAttribute("x",x)
+		input.setAttribute("y",y)
+		input.setAttribute("fill","rgb(225,100,100)")
+		input.setAttribute("onmousedown","link_to(evt)")
+		input.setAttribute("onmouseover","msg('click to link')")
+		input.setAttribute("onmouseup","clear(evt)")
+		input.setAttribute("onmouseout","msg('')")
+		parent.appendChild(input);
+		var new_div = document.createElement("div");
+		new_div.setAttribute("x",x+width/2)
+		new_div.setAttribute("y",y+height/2)
+		offsets.appendChild(new_div)
+	}
+	
+	
+	function add_variable_input(x,y,width,height,parent,offsets,index) {
+		//
+		// add variable input to node
+		//
+		var input = document.createElementNS(svgNS,"rect");
+		input.setAttribute("index",index)
+		input.setAttribute("width",width)
+		input.setAttribute("height",height)
+		input.setAttribute("x",x)
+		input.setAttribute("y",y)
+		input.setAttribute("fill","rgb(225,100,100)")
+		input.setAttribute("onmousedown","link_to(evt)")
+		input.setAttribute("onmouseover","msg('click to link')")
+		input.setAttribute("onmouseup","clear(evt)")
+		input.setAttribute("onmouseout","msg('')")
+		parent.appendChild(input);
+		var new_div = document.createElement("div");
+		new_div.setAttribute("x",x+width/2)
+		new_div.setAttribute("y",y+height/2)
+		offsets.appendChild(new_div)
+	}
+	
+	
+	function add_named_variable_input(x,y,width,height,variable_name,parent,offsets,index) {
+		//
+		// add named variable input
+		//
+		id = parent.getAttribute("id")
+		var new_g = document.createElementNS(svgNS,"g");
+		new_g.setAttribute("id",id)
+		new_g.setAttribute("onmouseover","msg('click to link "+variable_name+"')")
+		new_g.setAttribute("onmousedown","link_to(evt)")
+		new_g.setAttribute("onmouseup","clear(evt)")
+		new_g.setAttribute("onmouseout","msg('')")
+		new_g.setAttribute("label",label)
+		//
+		// define text
+		//
+		var txt = document.createElementNS(svgNS,"text")
+		txt.setAttribute("id","label")
+		txt.setAttribute("index","0"+index)
+		txt.setAttribute("font-size",size);
+		txt.setAttribute("text-anchor","middle");
+		txt.setAttribute("dominant-baseline","middle")
+		txt.setAttribute("fill","white")
+		txt_node = document.createTextNode(variable_name)
+		txt.appendChild(txt_node)
+		//
+		// add rectangle
+		//
+		var var_rect = document.createElementNS(svgNS,"rect");
+		var_rect.setAttribute("width",width)
+		var_rect.setAttribute("height",height)
+		var_rect.setAttribute("index","0"+index)
+		var_rect.setAttribute("x",x)
+		var_rect.setAttribute("y",height)
+		var_rect.setAttribute("fill","rgb(225,100,100)")
+		new_g.appendChild(var_rect)
+		//
+		// add text
+		//
+		txt.setAttribute("x",x+width/2)
+		txt.setAttribute("y",1.5*height)
+		new_g.appendChild(txt);
+		parent.appendChild(new_g)
+		//
+		// add offsets
+		//
+		var new_div = document.createElement("div");
+		new_div.setAttribute("x",x+width/2)
+		new_div.setAttribute("y",y+height/2)
+		offsets.appendChild(new_div)
+	}
+	
+	
+	function line(link_from_node,link_to_node,link_to_index) {
+		//
+		// add a line
+		//
+		var new_line = document.createElementNS(svgNS,"polyline");
+		new_line.setAttribute("id",link_from_node+'_'+link_to_node+'_'+link_to_index)
+		new_line.setAttribute("fill","none")
+		new_line.setAttribute("stroke","rgb(150,150,225)")
+		new_line.setAttribute("stroke-width","5")
+		mat0 = document.getElementById(link_from_node).getCTM()
+		x0 = mat0.e
+		y0 = mat0.f
+		mat1 = document.getElementById(link_to_node).getCTM()
+		x1 = mat1.e
+		y1 = mat1.f
+		offsets_element = document.getElementById(link_from_node).getElementsByTagName('offsets')
+		offsets_childs = offsets_element[0].childNodes
+		dx0 = parseFloat(offsets_childs[0].getAttribute("x"))
+		dy0 = parseFloat(offsets_childs[0].getAttribute("y"))
+		offsets_element = document.getElementById(link_to_node).getElementsByTagName('offsets')
+		offsets_childs = offsets_element[0].childNodes
+		dx1 = parseFloat(offsets_childs[link_to_index].getAttribute("x"))
+		dy1 = parseFloat(offsets_childs[link_to_index].getAttribute("y"))
+		new_line.setAttribute("points",(x0+dx0)+','+(y0+dy0)+','+(x1+dx1)+','+(y1+dy1))
+		canvas = document.getElementById("canvas")
+		canvas.insertBefore(new_line,canvas.firstChild);
+	}
+	
+	
+	function variable_form(name,value) {
+		//
+		// variable form handler
+		//
+		last_targ.setAttribute("name",name)
+		last_targ.setAttribute("value",value)
+		id = last_targ.getAttribute("id")
+		element = document.getElementById(id+"label")
+		if (name != "") {
+			txt_node = document.createTextNode(name)
+		} else {
+			txt_node = document.createTextNode(value)
+		}
+		element.replaceChild(txt_node,element.childNodes[0])
+		win2.close()
+	}
+
+
+	function variable_up(evt) {
+		//
+		// edit variable name, value on mouse up
+		//
+		x = evt.clientX
+		y = evt.clientY
+		name = targ.getAttribute('name')
+		value = targ.getAttribute('value')
+		if ((x == x0) & (y == y0)) {
+			win2 = open('','fab','width=400,height=150')
+			win2.document.write('\
+			<form onSubmit="opener.variable_form(name.value,val.value)">\
+			<input type="submit" value="enter"><br><br>\
+			name: &nbsp; <input type="text" name="name" size="40" value="'+name+'"><br><br>\
+			value: &nbsp; <input type="text" name="val" size="40" value="'+value+'"><br>\
+			</form>\
+			')
+			win2.document.close()
+			last_targ = targ
+			targ = null
+		} else {
+			msg('')
+			targ = null
+		}
+	}
+	
+	function variable(x,y,name,value,id) {
+		//
+		// add a variable node
+		//
+	height = size
+	width = size
       var new_node = add_node(x,y,name,value,id)
       var offsets = add_offsets(new_node)
       //
@@ -559,6 +601,8 @@ license for commercial sale available from MIT.
       //
       document.getElementById("canvas").appendChild(new_node);
       }
+      
+      
    function dyadic_function(x,y,name,value,id) {
       //
       // add a dyadic function node
@@ -588,6 +632,8 @@ license for commercial sale available from MIT.
       //
       document.getElementById("canvas").appendChild(new_node)
       }
+      
+      
    function monadic_operator(x,y,name,value,id) {
       //
       // add a monadic operator node
@@ -613,6 +659,8 @@ license for commercial sale available from MIT.
       //
       document.getElementById("canvas").appendChild(new_node);
       }
+      
+      
    function dyadic_operator(x,y,name,value,id) {
       //
       // add a dyadic operator node
@@ -642,6 +690,8 @@ license for commercial sale available from MIT.
       //
       document.getElementById("canvas").appendChild(new_node)
       }
+      
+      
    function object(x,y,name,fn,variables,id) {
       //
       // add an object node
@@ -676,6 +726,8 @@ license for commercial sale available from MIT.
       //
       document.getElementById("canvas").appendChild(new_node)
       }
+      
+      
    function transform(x,y,name,fn,variables,id) {
       //
       // add a transform node
@@ -714,6 +766,8 @@ license for commercial sale available from MIT.
       //
       document.getElementById("canvas").appendChild(new_node)
       }
+      
+      
    function variable_menu(evt) {
       //
       // variables menu
@@ -721,6 +775,8 @@ license for commercial sale available from MIT.
       names = ["number","X","Y","Z"]
       menu(0,60,80,22,names)
       }
+      
+      
    function function_menu(evt) {
       //
       // functions menu
@@ -728,6 +784,8 @@ license for commercial sale available from MIT.
       names = ["+","-","*","/","^2","sqrt","sin","cos"]
       menu(100,60,100,30,names)
       }
+      
+      
    function operator_menu(evt) {
       //
       // operator menu
@@ -735,6 +793,8 @@ license for commercial sale available from MIT.
       names = ["and","or","not","<",">"]
       menu(200,60,100,30,names)
       }
+      
+      
    function object_menu(evt) {
       //
       // object menu
@@ -742,31 +802,38 @@ license for commercial sale available from MIT.
       names = ["rectangle","cube","circle","cylinder","cone","sphere","torus","triangle","pyramid"]
       menu(300,60,100,30,names)
       }
-   function transform_menu(evt) {
-      //
-      // transformations menu
-      //
-      names = ["translate","rotate","scale","reflect","shear","taper"]
-      menu(400,60,100,30,names)
-      }
-   function render_menu(evt) {
-      //
-      // render menu
-      //
-      xmlhttp=new XMLHttpRequest();
-      xmlhttp.onreadystatechange = function() {resp(xmlhttp); };
-      xmlhttp.open('POST',"/Services/RenderMathString/",true)
-      xmlhttp.send('mathstring='+encodeURIComponent("(((((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.5**2) & (Z >= -0.5) & (Z <= 0.5)) | (((0.35 - sqrt(((Z-0)-0)**2 + ((0 + ((X--0.6)-0)/0.75)-0)**2))**2 + ((0 + ((Y-0)-0)/3)-0)**2) <= 0.05**2) | ((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.1**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5)))) & ~(((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.4**2) & (Z >= -0.4) & (Z <= 0.6)))) & ~(((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.075**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5))))) & ~(((X >= 0) & (X <= 1.5) & (Y >= -1.5) & (Y <= 0) & (Z >= -1.5) & (Z <= 1.5)))")) // This should be the math string.
-      }
-   function resp(xmlhttp) {
-     //
-     // render response handler
-     //
-     if (xmlhttp.readyState == 4) {
-         win2 = open('','asd','width=500,height=500')
-	 win2.document.write(xmlhttp.responseText)
-	 win2.document.close()
-	 }
+      
+      
+	function transform_menu(evt) {
+		//
+		// transformations menu
+		//
+		names = ["translate","rotate","scale","reflect","shear","taper"]
+		menu(400,60,100,30,names)
+	}
+	
+	
+	function render_menu(evt) {
+		//
+		// render menu
+		//
+		xmlhttp=new XMLHttpRequest();
+		xmlhttp.onreadystatechange = function() {resp(xmlhttp); };
+		xmlhttp.open('POST',"/Services/RenderMathString/",true)
+		xmlhttp.send(document);
+		xmlhttp.send('mathstring='+encodeURIComponent("(((((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.5**2) & (Z >= -0.5) & (Z <= 0.5)) | (((0.35 - sqrt(((Z-0)-0)**2 + ((0 + ((X--0.6)-0)/0.75)-0)**2))**2 + ((0 + ((Y-0)-0)/3)-0)**2) <= 0.05**2) | ((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.1**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5)))) & ~(((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.4**2) & (Z >= -0.4) & (Z <= 0.6)))) & ~(((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.075**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5))))) & ~(((X >= 0) & (X <= 1.5) & (Y >= -1.5) & (Y <= 0) & (Z >= -1.5) & (Z <= 1.5)))")); // This should be the math string.
+	}
+	
+	
+	function resp(xmlhttp) {
+		//
+		// render response handler
+		//
+		if (xmlhttp.readyState == 4) {
+			win2 = open('','asd','width=500,height=500')
+			win2.document.write(xmlhttp.responseText)
+			win2.document.close()
+		}
       }
    function edit_menu(evt) {
       //
@@ -1011,34 +1078,33 @@ license for commercial sale available from MIT.
          new_circ.setAttribute("cy",y+size/2-1.4*size)
          new_circ.setAttribute("fill","red")
       document.getElementById(parent).appendChild(new_circ)
-      }
-   function init(evt) {
-      //
-      // init UI
-      //
-      var w = 100
-      var h = 30
-      CBA(2,20,6,"ui")
-      text(200,20,20,"ui","message","")
-      text(30,20,17,"ui","prompt","fab.svg ("+date+")")
-      button(0*w,h,w,30,"variable","variable_menu(evt)")
-      button(1*w,h,w,30,"function","function_menu(evt)")
-      button(2*w,h,w,30,"operator","operator_menu(evt)")
-      button(3*w,h,w,30,"object","object_menu(evt)")
-      button(4*w,h,w,30,"transform","transform_menu(evt)")
-      button(5*w,h,w,30,"render","render_menu(evt)")
-      button(6*w,h,w,30,"edit","edit_menu(evt)")
-      button(7*w,h,w,30,"file","file_menu(evt)")
-      button(8*w,h,w,30,"quit","quit(evt)")
-      }
-   ]]>
+	}
+
+
+	function init(evt) {
+		//
+		// init UI
+		//
+		var w = 100
+		var h = 30
+		CBA(2,20,6,"ui")
+		text(200,20,20,"ui","message","")
+		text(30,20,17,"ui","prompt","fab.svg ("+date+")")
+		button(0*w,h,w,30,"variable","variable_menu(evt)")
+		button(1*w,h,w,30,"function","function_menu(evt)")
+		button(2*w,h,w,30,"operator","operator_menu(evt)")
+		button(3*w,h,w,30,"object","object_menu(evt)")
+		button(4*w,h,w,30,"transform","transform_menu(evt)")
+		button(5*w,h,w,30,"render","render_menu(evt)")
+		button(6*w,h,w,30,"edit","edit_menu(evt)")
+		button(7*w,h,w,30,"file","file_menu(evt)")
+		button(8*w,h,w,30,"quit","quit(evt)")
+	}
+]]>
 </script>
-   //
-   // drawing canvas
-   //
-   <g id="canvas"></g>
-   //
-   // UI elements
-   //
-   <g id="ui" onload="init(evt)"></g>
+
+	<!-- drawing canvas -->
+	<g id="canvas"></g>
+	<!-- UI elements -->
+	<g id="ui" onload="init(evt)"></g>
 </svg>

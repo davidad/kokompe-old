@@ -4,7 +4,6 @@
 #include <wx/image.h>
 #include <wx/xrc/xmlres.h>
 
-
 class KokompeUI : public wxApp {
 	public:
 		virtual bool OnInit();
@@ -27,4 +26,3 @@ class KokompeMainFrame : public wxFrame {
 		DECLARE_DYNAMIC_CLASS(KokompeMainFrame)
 		DECLARE_EVENT_TABLE()
 };
-

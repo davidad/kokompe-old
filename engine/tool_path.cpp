@@ -331,3 +331,23 @@ std::ostream& write_scaled_path(std::ostream& os, const tool_path& path,
 }
 
 
+std::ostream& write_scaled_gtp(std::ostream& os, const tool_path& path,
+				float xstart, float ystart, float xscale, float yscale)
+{
+	for(tool_path::const_iterator s = path.begin(); s != path.end(); s++)
+	{
+		for(segment::const_iterator v = (*s).begin(); v != (*s).end(); v++)
+		{
+			// os.write((unsigned long)((lattice_point&)*v[0]*xscale)+xstart, 4);
+			// os.write((unsigned long)((lattice_point&)*v[1]*yscale)+ystart, 4);
+			if (s == path.begin()) {
+			//	os.write(0xFFFF0013, 4);
+			} else {
+			//	os.write(0xFFFF0012, 4);
+			}
+		}
+	}
+	return os;
+}
+
+

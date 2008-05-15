@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <stdlib.h>
 #include "Base.h"
 
 using namespace std;
@@ -40,7 +41,7 @@ class Circle: public Primitive {
 		Circle(int x, int y, double r): x(x), y(y), r(r) {};
 		Circle(double r): r(r) { x = 0; y = 0; }
 		Circle() { x = 0; y = 0; r = 0; }
-		string GetMathString() { return string("((x+") + x + string(")^2 + (y+") + y + string(")^2 < ") + r + string(")"); }
+		// string GetMathString() { return string("((x+") + string(x) + string(")^2 + (y+") + string(y) + string(")^2 < ") + string(r) + string(")"); }
 		void SetX(int xval) { x = xval; }
 		void SetY(int yval) { y = yval; }
 		void SetRadius(double rad) {r = rad; }
@@ -55,7 +56,7 @@ class Rectangle: public Primitive {
 		Rectangle(int x1, int y1, int x2, int y2): m_x1(x1), m_x2(x2), m_y1(y1), m_y2(y2) {};
 		Rectangle() { m_x1 = m_x2 = m_y1 = m_y2 = 0; };
 		// TODO: FIXME: Need to assert   x2 > x1  &c...
-		string GetMathString() { return "( (x > " +itoa(m_x1) + ") & (x < " + itoa(m_x2) + ") & (y > " + itoa(m_y1) + ") & (y < " + itoa(m_y2) + ") )"; };
+		// string GetMathString() { return "( (x > " +itoa(m_x1) + ") & (x < " + itoa(m_x2) + ") & (y > " + itoa(m_y1) + ") & (y < " + itoa(m_y2) + ") )"; };
 		void SetX(int x1, int x2) { m_x1 = x1; m_x2 = x2; };
 		void SetY(int y1, int y2) { m_y1 = y1; m_y2 = y2; };
 	private:

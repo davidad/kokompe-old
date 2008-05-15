@@ -12,7 +12,11 @@ int main() {
   // Gobble input until EOF is reached
   while (getline(cin, inputline)) {
       infix += inputline;
-  }  
+  }
+
+  if(infix.length() == 0) {
+	return(0);
+  }
 
   // Convert to postfix and print to stdout
   postfix = convert_infix_to_postfix(infix);
