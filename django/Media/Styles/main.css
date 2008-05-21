@@ -137,6 +137,21 @@ a {
 }
 
 
+.tabs {
+	margin-bottom:	10px;
+	border-bottom:	1px solid #c1580d;
+	padding-bottom:	3px;
+	padding-left:		3px;
+}
+
+.tabs a {
+	color:					#f8f0ac;
+	background:		#c1580d;
+	padding:				3px;
+	text-decoration:	none;
+}
+
+
 /************************
  *
  *  From Amy's IDE:

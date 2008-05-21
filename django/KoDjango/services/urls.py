@@ -5,5 +5,6 @@ urlpatterns = patterns('KoDjango.services.views',
 	(r'^Logout/$','service_logout'),
 	(r'^CheckLoggedIn/$', 'service_checkloggedin'),
 	(r'^RenderMathString/$', 'service_rendermathstring'),
+	(r'^RenderGears/$', 'service_makegears'),
 )
 
