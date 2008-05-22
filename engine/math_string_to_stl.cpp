@@ -13,15 +13,11 @@ using namespace std;
 #include "vector.h"
 #include "trimesh.h"
 
+#ifdef WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 
-float max(float a, float b, float c) {
-  if ((a >= b) && (a >= c)) 
-    return(a);
-  else if ((b >= a) && (b >= c))
-    return(b);
-  else
-    return(c);
-}
 
 void print_usage() {
   cout << "Usage: math_string_to_stl xmin xmax ymin ymax zmin zmax min_feature renderlevel\n";
@@ -30,6 +26,23 @@ void print_usage() {
   cout << "min_feature is minimum feature size, floating point.\n";
   cout << "renderlevel = 0 for block-object, 1 for smooth surfaces, 2 for smooth surfaces and sharp edges";
 }
+
+
+float maxf(float a, float b, float c) {
+  if ((a >= b) && (a >= c)) 
+    return(a);
+  else if ((b >= a) && (b >= c))
+    return(b);
+  else
+    return(c);
+}
+
+
+#ifdef WIN32
+float log2f(float x) {
+	return(logf(x)/logf(2));
+}
+#endif
 
 
 float read_argf(char ** argv, int arg) {
@@ -82,7 +95,7 @@ int main(int argc, char** argv) {
   float xlen = xmax-xmin;
   float ylen = ymax-ymin;
   float zlen = zmax-zmin;
-  float maxlen = max(xlen, ylen, zlen);
+  float maxlen = maxf(xlen, ylen, zlen);
   
   if ((xlen <= 0) || (ylen <= 0) || (zlen <= 0) || (min_feature <= 0)) {
     cerr << "Must evaluate over a 3-D region with finite precsision.\n";
@@ -177,6 +190,12 @@ int main(int argc, char** argv) {
    int stl_length;
    
    // Fill STL data
+   #ifdef WIN32
+	/* Change translation mode for stdout to BINARY */
+	_setmode( _fileno( stdout ), O_BINARY );
+	#endif
+   
+   
    cerr << "Writing STL.\n";
    trimesh.fill_stl(&stl, &stl_length);
    

@@ -386,6 +386,11 @@ inline float powcheckf(float x, float y) {
     return(powf(x,y));
 }
 
+#ifdef WIN32
+inline float roundf(float x) { return floorf(x + 0.5); }
+#endif
+
+
 int is_integer(float x) {
   float epsilon = 1e-6;
 

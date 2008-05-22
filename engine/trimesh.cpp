@@ -14,12 +14,15 @@ using namespace std;
 
 #ifdef WIN32
 #include <windows.h>
-#include <gl/gl.h>
-//#include <glut.h>
 #define M_PI 3.14159f
+#ifndef NOGL
+#include <gl/gl.h>
+#endif
+//#include <glut.h>
 #else
+#ifndef NOGL
 #include <GL/glut.h>
-
+#endif
 #endif
 
 
@@ -1979,6 +1982,8 @@ void trimesh_t::fill_stl(char **buffer, int *buffer_size) {
 
 void trimesh_t::drawgl() {
 
+#ifndef NOGL
+
 
 	vector_t v1, v2, v3,n;
 
@@ -2025,7 +2030,7 @@ void trimesh_t::drawgl() {
 		glEnd();		
 	}
 
-
+#endif
 }
 
 
