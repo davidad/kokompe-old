@@ -3,25 +3,28 @@ archive
 design clients
    php text editor: Amy
    SVG+Javascript graphical equation editor: Neil
-   WYSIWYG
-   visual dataflow logic automata: Forrest
+   2D WYSIWYG: Forrest
+   Eclipse?: Kenny
+   3D WYSIWYG: Kenny
+   visual dataflow logic automata (microcode): Forrest
 transports
    xmlhttprequest
 servers
    Django: Smari
    php: Amy
    siteserver: Neil
+   XML server: Ara
 evaluators
    math string numpy: Neil
    math string octree: Ara
-renderers
-   GL: Forrest
-   lattice CA
-viewers
-   HTML
-   JOGL
+      math string, infix or postfix -> STL, 2D PPM
+renderers/viewers
+   STL -> PPM -> HTML: Forrest
+   JOGL: Ara
+   lattice CA graphics
 toolpath generation
-   cad convolution (FFT->grassfire): Neil
+   cad convolution: Neil
+   grassfire, edge detect, sort, prune convolve: Luis
 machine translation
    cad: Neil
 machine communication
