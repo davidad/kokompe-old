@@ -1,0 +1,32 @@
+            kokompe camp notes
+archive
+design clients
+   text editor
+   SVG+Javascript graphical equation editor: Neil
+   WYSIWYG
+   visual dataflow logic automata: Forrest
+transports
+   xmlhttprequest
+servers
+   Django: Smari
+   siteserver: Neil
+evaluators
+   math string numpy: Neil
+   math string octree: Ara
+renderers
+   GL
+   lattice CA
+viewers
+   HTML
+   JOGL
+toolpath generation
+   cad convolution (FFT->grassfire): Neil
+machine translation
+   cad: Neil
+machine communication
+   lpr
+machine control
+   virtual/i0: Luis, Ilan
+version control
+   git/siteserver/Fab World: Neil
+license
