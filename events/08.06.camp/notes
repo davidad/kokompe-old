@@ -1,7 +1,7 @@
-            kokompe camp notes
+               kokompe camp notes
 archive
 design clients
-   text editor
+   php text editor: Amy
    SVG+Javascript graphical equation editor: Neil
    WYSIWYG
    visual dataflow logic automata: Forrest
@@ -9,12 +9,13 @@ transports
    xmlhttprequest
 servers
    Django: Smari
+   php: Amy
    siteserver: Neil
 evaluators
    math string numpy: Neil
    math string octree: Ara
 renderers
-   GL
+   GL: Forrest
    lattice CA
 viewers
    HTML
