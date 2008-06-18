@@ -1,0 +1,16 @@
+{%extends "base.html"%}
+{%block content%}
+
+<h2>Inventory &ndash; {{lab}}</h2>
+
+<table>
+<tr><th>Item name</th><th>Count</th><th>Unit price</th></tr>
+{%for a in inventory%}
+<tr>
+	<td>{{a.Item}}<td>
+	<td>{{a.Count}}<td>
+	<td>{{a.UnitPrice}}<td>
+</tr>
+{%endfor%}
+</table>
+{%endblock%}
