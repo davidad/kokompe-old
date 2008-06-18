@@ -1,11 +1,11 @@
-               kokompe camp notes
+                 kokompe camp notes
 archive
 design clients
    php text editor: Amy
    SVG+Javascript graphical equation editor: Neil
    2D WYSIWYG: Forrest
-   Eclipse?: Kenny
    3D WYSIWYG: Kenny
+   Eclipse?: Kenny
    visual dataflow logic automata (microcode): Forrest
 transports
    xmlhttprequest
