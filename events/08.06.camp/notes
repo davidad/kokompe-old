@@ -14,13 +14,180 @@ servers
    php: Amy
    siteserver: Neil
    XML server: Ara
+   ===============
+   kokompe/engine/xmlrpc_server
+   This is in questionable shape: I will work on it this week.
+
+
 evaluators
    math string numpy: Neil
    math string octree: Ara
-      math string, infix or postfix -> STL, 2D PPM
+   =======================
+  
+   File Location
+   -------------
+   kokompe/engine
+   Build by typing "make" in that directory.
+
+   Overview
+   --------
+
+   The octree evaluator takes a math string representing 2D or 3D geometry as the input,
+   and renders it to a triangulated, voxelated, or pixelated representation suitable for
+   display or machine control.
+
+   It is faster than brute-force evaluation of a math string because it sucessively
+   algebracially simplifies the expression on regions of a recursively shrinking 
+   octree, using the rules of interval algebra to mathematically prove the equivilence
+   of the simplified expression to the original expresion on the specified region.
+
+   There are three classes of rendering avaliable
+   ----------------------------------------------
+
+   Level "0": Voxelated.  Exactly equivilent to Neil's cad.py volexated evaluator.  Outputs
+     cubic voxels, fills an object if the math string evaluates to true at the center,
+     false otherwise.  Results in "blocky-looking" models.  Fastest.
+   Level "1": Refined Surfaces.  Pushes the triangulation verticies to lie on the analytic surface
+     of the object.  Results in smooth surfaces.  Objects with not have sharp edges and 
+     corners.  Medium Speed.
+   Level "2": Refined Surfaces, Edges, and Corners:  Pushes triangulation verticies to line on the
+     analytic surface of the object, and pushes verticies sufficiently near edges and corners
+     exactly onto the edges and corners, using the analytic derivative of the math string.
+     Best-looking models.  Slowest.
+
+  General usage tips:  (IMPORTANT)
+  --------------------------------
+
+  Restrict yourself to a CUBIC bounding box.  There is a open bug that crops up when
+  using non-cubic (e.g. rectangular) bounding boxes.  
+
+  Beyond a certain resolution (model size / min. section size) > 75, corresponding
+  to voxel grids larger than about 1000 x 1000 x 1000, the the renderer takes
+  much, much longer to run than at low resolutions, probably because the internal
+  voxel slice buffers no longer fit in the L2 cache of the processor.  So be careful
+  with ultra-high resolution rendering. 
+
+  There is a directory called "test_cases" in the kokompe source directory that
+  has a few designs (a teapot and some circuit boards) in various intermediate
+  formats.  The file "usage_examples" in that directory shows the command line
+  syntax to convert the files from format to format.  
+
+  Syntax of Command-Line Programs
+  -------------------------------
+
+   infix_to_postfix
+     Takes an infix math string on stdin
+     Returns a postfix math string on stdout
+
+   math_string_to_stl xmin xmax ymin ymax zmin zmax feature_size
+     Over a bounding box from (xmin, ymin, zmin) -> (zmax, ymax, zmax), evaluates
+     the postfix math string on stdin and returns binary STL on stdout.
+     feature_size is the smallest dimension of the smallest feature, sometimes
+     called the "minimum section size" in mechanical design.  For a given bounding
+     box, larger feature sizes result in faster rendering.  If the feature size
+     given is too small, rendering may take forever or the machine may run out of
+     memory.
+
+   math_string_slice_to_ppm xmin xmax ymin ymax z feature_size
+     Over a bounding box from (xmin,xmax) -> (ymin,ymax), evaluates the postfix
+     math string on stdin and returns binary PPM on stdout.  feature_size is as
+     above.  If the math string contains only X and Y, z is unimportant and
+     may be set to 0.  If the math string contains "Z", it is evaluated at Z =
+     z
+
+   math_string_slice_to_toolpath xmin xmax ymin ymax z feature_size tool_radius
+     Takes a postfix math string on stdin and returns a "Forrest-format toolpath"
+     on stdout.  Arguments descriptions are the same as math_string_slice_to_ppm.
+
+   stl_to_ppm
+     A 3-D render. Takes binary STL on stdin and returns a ppm image from a
+     particular viewpoint on stdout.
+     Arguments:  (all optional)
+       --roll      	Rotation of object, Roll, in degrees (?)
+       --pitch	Rotation of object, Pitch, in degrees (?)
+       --yaw 	Rotation of object, Yaw, in degrees (?)
+       --org_x	X coordinate of origin
+       --org_y	Y coordinate of origin
+       --org_z	Z coordinate of origin
+       --width	Output image width, pixels
+       --height	Output image height, pixels
+       --scale	scale of the object relative to the image frame
+       --lighting	If given, use photo-realistic lighting rather than default
+                XYZ=RGB
+
+   The Intermediate Data Formats
+   -----------------------------
+
+   "Infix Math String"
+   -------------------
+
+   This is a mathematical string representing geometry, in ASCII format.  The
+   string, in floating-point variables, "X", "Y", and "Z", should evaluate to TRUE
+   if the object is there and FALSE if it is not.  The string is infix, has Python
+   operator precedence, and supports the following operators:
+   +, -, *, /, =, &, |, ~, sin, cos, ** (exponent)
+
+   Examples:  
+     A unit sphere centered at the origin:
+       X*X + Y*Y + Z*Z < 1
+     A unit cube centered at the origin:
+       (X > -1) & (X < 1) & (Y > -1) & (Y < 1) & (Z>-1) & (Z <1)
+
+  "Postfix Math String"
+  ---------------------
+
+  A mathematical string representing geometry, but in reverse-polish notation.
+  All of the operators and variable names are the same, but the operator "m" is
+  used for unary minus, for disambiguation.
+
+  "STL"
+  -----
+
+  A binary STL file, which represents the surface of an object as list of
+  triangles in a triangulated mesh.  This is a standard format used by 3-D
+  printers.
+
+  "PPM"
+  ----
+
+  A bitmap image file.
+
+
+
 renderers/viewers
    STL -> PPM -> HTML: Forrest
    JOGL: Ara
+   =========
+   kokompe/javaviewer 
+
+   Java program to view STL files.  Left-click to arcball rotate, Right-click
+   to pan, mousewheel or keyboard "+/-" to zoom.  Can also display a "Kokompe
+   Assembly File", with ".KAF" extension, which is a list of STL files, 
+   each with a color and an OpenGL style translation/rotation matrix.
+
+   When the program is invoked, it takes a URL target (of an STL file or a KAF file)
+   as its argument.  The URL could be local (e.g. file://) or remote.  The program
+   continously watches that URL, and updates the model on-screen when it changes.  For
+   KAF files, it watches all of the component STL files, as well as the overall KAF
+   file, and updates the on-screen display when any change.  Any STL appearing multiple
+   times in a KAF is only downloaded once per change
+
+   Command-line Usage
+   ------------------
+   kokompe/javaviewer/javaviewer.jar
+
+   java -classpath javaviewer.jar javaviewer.Viewer file://c:/foo.stl
+ 
+   Web-page Integration
+   --------------------
+   kokompe/javaviewer/Viewer.jnlp
+
+   The javaviewer can be integrated with a web page using Java Web Start.
+   There is an example ".jnlp" file to launch it referenced above.  Note that
+   the name of the model to view needs to appear in the jnlp file in TWO seperate
+   places.
+
+
    lattice CA graphics
 toolpath generation
    cad convolution: Neil

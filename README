@@ -55,11 +55,14 @@ How to Build Kokompe on Linux
 2. Install the necessary packages.  I hope this is a complete list, if not,
    please add any packages you discover are needed.
 
-% apt-get install g++ libargtable2-dev freeglut3-dev python python-dev 
+% apt-get install g++ libargtable2-dev freeglut3-dev python python-dev wx-common 
+
+  For hardy the python 2.5 packages are python2.5 and python2.5-dev
 
 3. Build Kokompe
 
-% make 
+% cd engines && make 
+% cd ../KokompeUI/ && make
 
 4. (Optional) Install the binaries somewhere in your path
 
@@ -179,3 +182,6 @@ at the end.
 
 I tried running this program when writing this document but it didn't work for
 me. - AK 1/08
+
+I built successfully with these updated steps.  App runs but throws exception
+when trying the test case above - RP 2008-06
