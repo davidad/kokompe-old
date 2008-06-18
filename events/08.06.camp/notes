@@ -14,10 +14,11 @@ design clients
    visual dataflow logic automata (microcode): Forrest
 transports
    xmlhttprequest
+   XML RPC
 servers
    Django: Smari
    php: Amy
-   siteserver: Neil
+   cadserver: Neil
    XML server: Ara
    ===============
    kokompe/engine/xmlrpc_server
