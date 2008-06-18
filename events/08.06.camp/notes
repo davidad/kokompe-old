@@ -4,11 +4,9 @@ design clients
    php text editor: Amy
    SVG+Javascript graphical equation editor: Neil
    2D WYSIWYG: Forrest
-      First version is in wysiwyg2d.
-	  build: "make all" from project directory
-	  run: "make run" or "./main" from project directory.
-      Currently demos realtime graphical editing and rendering of mathstrings
-	  Doesn't yet allow creation of compound/hierarchical shapes (in progress).
+      Lives in wysiwyg2d ("make clean all run" for demo).
+      Currently demos realtime graphical editing and rendering of mathstrings,
+	  but doesn't allow creation of compound/hierarchical shapes (in progress).
    3D WYSIWYG: Kenny
    Eclipse?: Kenny
    visual dataflow logic automata (microcode): Forrest

@@ -1,5 +1,5 @@
 #include "application.h"
-#include <GL/freeglut.h>
+#include <GL/glut.h>
 #include <iostream>
 
 
@@ -36,10 +36,12 @@ void application::run()
 	new_view();
 
 	//start the main event loop
-	while(!time_to_shutdown)
-	{
-		glutMainLoopEvent();
-	}
+	//if using freeglut:	
+	//while(!time_to_shutdown)
+	//{
+	//	glutMainLoopEvent();
+	//}
+	glutMainLoop();
 
 }
 
@@ -53,7 +55,8 @@ design* application::new_design()
 
 void application::new_view()
 {	
-	new_view(*new_design());
+	design* new_d = new_design();
+	new_view(*new_d);
 }
 
 void application::new_view(design& d)
