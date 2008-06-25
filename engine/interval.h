@@ -58,15 +58,14 @@ private:
   static interval_t bool_or(const interval_t &a, const interval_t &b);
   static interval_t bool_and(const interval_t &a, const interval_t &b);
 
+  static interval_t exp(const interval_t &a, const interval_t &b);
   static interval_t sin(const interval_t &a, const interval_t &b);
   static interval_t cos(const interval_t &a, const interval_t &b);
   static interval_t power(const interval_t &a, const interval_t &b); 
   static interval_t sqrt(const interval_t &a, const interval_t &b);
   static interval_t unary_minus(const interval_t &a, const interval_t &b);
   
-
   friend ostream& operator<<(ostream &s, const interval_t &i);
-
 
 };
 

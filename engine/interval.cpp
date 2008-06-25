@@ -329,6 +329,9 @@ interval_t interval_t::sin(const interval_t &a, const interval_t &b) {
     else {
       mod_arg = fmodf(a.lower,2*(float)M_PI);
       
+      if (mod_arg < 0)
+	mod_arg += 2.0f*(float)M_PI;
+
       x = sinf(a.lower);
       y = sinf(a.upper);
       if (x > y) {
@@ -372,6 +375,19 @@ interval_t interval_t::cos(const interval_t &a, const interval_t &b) {
     offset.set_real_number((float)M_PI/2);
     return(sin(add(a, offset), offset)); 
   }
+}
+
+interval_t interval_t::exp(const interval_t &a, const interval_t &b) {
+  interval_t result;
+  
+  if (a.is_real_number()) {
+    result.set_real_number(expf(a.lower));
+  }
+  else {
+    // exp(x) is a strictly monotonically increasing function
+    result.set_real_interval(expf(a.lower), expf(a.upper));
+  }
+  return(result);  
 }
 
 

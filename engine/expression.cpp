@@ -23,8 +23,8 @@ using namespace std;
 
 // In the infix representation, unary operators are prefix (e.g. -, sin, !)
 
-static const int fcn_num = 17;
-static const string fcn_name[] = {"+", "-", "*", "/", ">", "<", "==", "~", "&", "|", "**", "<=", ">=", "sin", "cos", "sqrt", "m"};
+static const int fcn_num = 18;
+static const string fcn_name[] = {"+", "-", "*", "/", ">", "<", "==", "~", "&", "|", "**", "<=", ">=", "sin", "cos", "sqrt", "m","exp"};
 static interval_t (*fcn_evaluator[])(const interval_t&, const interval_t&) = {
   &(interval_t::add),
   &(interval_t::sub),
@@ -43,30 +43,25 @@ static interval_t (*fcn_evaluator[])(const interval_t&, const interval_t&) = {
   &(interval_t::sin), 
   &(interval_t::cos),
   &(interval_t::sqrt),
-  &(interval_t::unary_minus)};
+  &(interval_t::unary_minus),
+  &(interval_t::exp)};
 
 
 
-static const int fcn_args[] = {2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1};  
+static const int fcn_args[] = {2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1,1};  
 
 // This isn't used anymore --- just put 0 for new opeators (AK - 2/22/08)
-static const int fcn_lazy[] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0};
+static const int fcn_lazy[] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0,0};
 
 // operator precedence
-static const unsigned int fcn_precedence[] = {13, 13, 12, 12, 18, 18, 18, 10, 15, 17, 9, 18, 18, 5, 5, 5, 11};
+static const unsigned int fcn_precedence[] = {13, 13, 12, 12, 18, 18, 18, 10, 15, 17, 9, 18, 18, 5, 5, 5, 11,5};
 static const unsigned int highest_precedence = 1;
 static const unsigned int lowest_precedence = 24; 
 
 // operator associativity in infix string
-// by precedence group
+// BY PRECEDENCE GROUP
 //  --- 0 = left, 1 = right
 // starting at precedence group "0"
-
-// this looks to be FUBARED!
-//static const int assoc[] = {0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,1,1,0};  
-
-// all unary operators plus ** are right-associative. all else is left-associative, per Python spec
-// ** is precedence group 9
 static const int assoc[] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 1,
 			    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 
 			    0, 0, 0, 0, 0};
@@ -74,7 +69,7 @@ static const int assoc[] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 1,
 // Operator precedence and associativity from
 // http://www.ibiblio.org/g2swap/byteofpython/read/operator-precedence.html
 //
-// also, unary operators are assumed to be prefix operators in the infix string and so MUST be right-associative
+// also, unary operators are assumed to be prefix operators in the infix string // and so MUST be right-associative
 
 // Varible list of function parsing.
 // There are only three variables, X, Y, and Z
@@ -736,6 +731,19 @@ void expression_t::derivative(expression_t *expression_in, int d_var) {
 		    cerr << "Error: Derivative of a power raised to a non-contant expression.  Not currently supported." << endl;	
 		    exit(232);
 		  }
+		}
+                else if ((expression_in->evaluator) == &(interval_t::exp)) {
+		  // EXPONENTIAL
+		  // Derivative of exponential is exponential of same arg,
+		  // times derivative of arg
+		  evaluator = &(interval_t::mul);
+		  build_children(2);
+		  
+		  children[0]->evaluator = &(interval_t::exp);
+		  children[0]->num_children = 1;
+		  children[0]->children = new expression_t*[1];
+		  children[0]->children[0] = new expression_t(*expression_in->children[0]);  	  
+		  children[1]->derivative(expression_in->children[0], d_var);
 		}
 		else if ((expression_in->evaluator) == &(interval_t::sin)) {
 			// SINE
