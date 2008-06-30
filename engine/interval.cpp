@@ -322,6 +322,7 @@ interval_t interval_t::sin(const interval_t &a, const interval_t &b) {
     result.set_real_number(sinf(a.lower));
   }
   else {
+
     range = a.upper - a.lower;
     if (range > (2*M_PI)) {
       result.set_real_interval(-1.0f, 1.0f);
@@ -343,19 +344,28 @@ interval_t interval_t::sin(const interval_t &a, const interval_t &b) {
 	upper = y;
       }
 
-      if (mod_arg <= (M_PI*0.5f)) {
-	if (( (M_PI*0.5f) - mod_arg) < range) {
-	  // M_PI/2 is inside range
-	  upper = 1.0f;
-	}
+      // This code checks to see if the maximum of the sine function,
+      // +1 at pi/2, or the minimum of the sine function, -1 @ at 3pi/2,
+      // are on the input interval.  If so, it expands the output interval
+      // to include one or both of them.
+
+      float min_range = mod_arg;
+      float max_range = mod_arg + range;
+
+      if(min_range < M_PI*0.5f && max_range > M_PI*0.5f) {
+	upper = 1.0f;
       }
-      if (mod_arg <= (1.5f*M_PI)) {
-	if (((1.5f*M_PI) - mod_arg) < range) {
-	  // 3*M_PI/2 is inside range
-	  lower = -1.0f;
-	}
+      if(min_range < M_PI*1.5f && max_range > M_PI*1.5f) {
+	lower = -1.0f;
       }
-      result.set_real_interval(lower, upper);
+      if(min_range < M_PI*2.5f && max_range > M_PI*2.5f) {
+	upper = 1.0f;
+      }
+      if(min_range < M_PI*3.5f && max_range > M_PI*3.5f) {
+	lower = -1.0f;
+      }
+        
+    result.set_real_interval(lower, upper);
     }
   }
   return(result);
