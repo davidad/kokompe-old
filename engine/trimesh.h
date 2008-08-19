@@ -13,9 +13,10 @@
 #define TRIMESH_H
 
 #include "vector.h"
+#include "vertex.h"
 #include "interval.h"
-#include "space_interval.h"
 #include "octree.h"
+#include "space_interval.h"
 #include "derivative_table.h"
 #include <list>
 using namespace std;
@@ -27,37 +28,7 @@ using namespace std;
 
 class trimesh_node_t;
 
-class vertex_t : public vector_t {
-public:
-	int number;
-	space_interval_t si;
-	int dirty;
-	int clause;
-	list<trimesh_node_t*> triangle_list;
-	vertex_t(float x, float y, float z)
-		: vector_t(x,y,z),
-		number(-1), clause(-1) {		
-	}
-	vertex_t(float ax, float ay, float az, int a_number) {
-		x=ax;
-		y=ay;
-		z=az;
-		number=a_number;
-		dirty = 0;
-		clause = -1;
-	}
-	vertex_t() {
-	}
-	vertex_t(const vector_t& base)
-		: vector_t(base) {
-	}
-	
-	void set_vector(const vector_t& a) {
-		x = a.x;
-		y = a.y;
-		z = a.z;
-	}
-};
+
 
 
 
@@ -78,34 +49,7 @@ public:
    disconnected ends.  */
 
 
-class trimesh_node_t {
-public:
-	vertex_t *verticies[3];
-	trimesh_node_t *neighbors[3];    // edge neighbors of this triangle
-	vector_t normal;
-	vector_t* interior_point;
-	vector_t* exterior_point;
-	int dirty;	
-	int has_unknown_clause;
-	float centroid_to_object;
 
-	static int repair_triangles(trimesh_node_t* triangle_a, trimesh_node_t* triangle_b);
-    static int divide_triangle(trimesh_node_t* triangle1, trimesh_node_t* triangle2,trimesh_node_t * triangle3,
-											 vertex_t* vertex,
-											 octree_t* octree,
-											float search_distance);
-
-	friend ostream& operator<<(ostream &s, const trimesh_node_t &v);
-
-	trimesh_node_t() {
-		dirty = 0;
-		has_unknown_clause = 0;
-		centroid_to_object = 0;
-		for (int i=0; i<3; i++) {
-			neighbors[i] = NULL;
-		}
-	}
-};
 
 ostream& operator<<(ostream &s, const trimesh_node_t &v);
 
@@ -117,7 +61,7 @@ public:
 	vector_t vertex_3;
 };
 
-
+class octree_t;
 
 class trimesh_t {
 private:
@@ -135,7 +79,7 @@ private:
 	derivative_table_t dt;
 
 	// Class members used to populate the trimesh from voxel grid
-	octree_t *octree;
+	//octree_t *octree;
 	int nx, ny, nz;
 	float xstep, ystep, zstep, zhorizon, xstart, ystart, zstart;
 	float x, y, z;
@@ -163,6 +107,7 @@ private:
 	
 
 public:
+	octree_t *octree;
 	trimesh_t();	// Constructor
 	~trimesh_t();   // Destructor
 	// Create a triangulated mesh from an evaluated octree on a given space interval
@@ -184,6 +129,12 @@ public:
 	void move_verticies_toward_corners();
 	void add_centroid_to_object_distance(); 
 
+	void merge(trimesh_t &a);   // Merge another trimesh into this one, possibly duplicating verticies
+	void replace_vertex(vertex_t *oldv, vertex_t *newv);
+	void add_vertex(vertex_t *vertex, vector_t *inside_point, vector_t *outside_point);
+	void add_triangle(vertex_t *v1, vertex_t*v2, vertex_t *v3, vector_t normal);
+	void add_voxel_center(vector_t *v);
+	void check_neighbors();  // TODO REMOVE
 	friend ostream& operator<<(ostream &s, trimesh_t &v);
 };
 

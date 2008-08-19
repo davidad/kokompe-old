@@ -25,7 +25,7 @@ private:
   int is_on(float x, float y, float z);
   void set(float xmin, float xmax, float ymin, float ymax, float zmin, float zmax);
   void get_corners(vector_t *lower, vector_t *upper);
-
+  void set_to_center(const space_interval_t &a);
 
   friend ostream& operator<<(ostream &s, const space_interval_t &si);
  

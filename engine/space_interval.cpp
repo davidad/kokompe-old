@@ -42,8 +42,8 @@ ostream& operator<<(ostream&s, const space_interval_t &si) {
 // Split a space interval into one of the eight orthants
 void space_interval_t::split(int i) {
   X.split(i & 0x1);
-  Y.split(i & 0x2);
-  Z.split(i & 0x4);
+  Y.split(i & 0x4);
+  Z.split(i & 0x2);   // Trying alternate ordering... TODO CHANGE BACK IF NEEDED
 }
 
 // get the zone where a particular point resides
@@ -53,9 +53,9 @@ int space_interval_t::get_zone(float x, float y, float z) {
   if (x > X.get_center())
     result |= 0x1;
   if (y > Y.get_center())
-    result |= 0x2;
-  if (z > Z.get_center())
     result |= 0x4;
+  if (z > Z.get_center())
+    result |= 0x2;
   return(result);
 }
 
@@ -71,6 +71,16 @@ void space_interval_t::set_point(float x, float y, float z) {
 int space_interval_t::overlaps(const space_interval_t &b) const {
   return(X.overlaps(b.X) && Y.overlaps(b.Y) && Z.overlaps(b.Z));
 }
+
+
+// Create a point interval at the center of a real interval
+void space_interval_t::set_to_center(const space_interval_t &a) {
+	X.set_to_center(a.X);
+	Y.set_to_center(a.Y);
+	Z.set_to_center(a.Z);
+
+}
+
 
 int space_interval_t::is_on(float x, float y, float z) {
 	return(X.is_on(x) && Y.is_on(y) && Z.is_on(z));

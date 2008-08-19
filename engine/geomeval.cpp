@@ -64,13 +64,15 @@ int main(int argc, char* argv[]) {
   space_interval_t si(interval1, interval1, interval1);
  
   // Convert an infix string (for a circle) to a postfix string 
-  //infix = "X**2 + Y**2 + Z**2 < 0.5";
+   // infix = "(X*1)**2 + (Y*1)**2 + (Z*1)**2 < 0.5";
+
+  //infix = "(X > -0.5) & (X < 0.5) & (Y > -0.5) & (Y < 0.5) & (Z > -0.5) & (Z < 0.5)";
 
 	//infix = "sqrt(y**2) + sqrt(x**2)";
 
   //infix = "(X**2 + Y**2 + Z**2 < 0.5) & (X**2 + Y**2 + Z**2 > 0.3) & (Z < 0.25	)";
 	
-  infix = "(((((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.5**2) & (Z >= -0.5) & (Z <= 0.5)) | (((0.35 - sqrt(((Z-0)-0)**2 + ((0 + ((X--0.6)-0)/0.75)-0)**2))**2 + ((0 + ((Y-0)-0)/3)-0)**2) <= 0.05**2) | ((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.1**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5)))) & ~(((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.4**2) & (Z >= -0.4) & (Z <= 0.6)))) & ~(((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.075**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5))))) & ~(((X >= 0) & (X <= 1.5) & (Y >= -1.5) & (Y <= 0) & (Z >= -1.5) & (Z <= 1.5)))";
+    infix = "(((((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.5**2) & (Z >= -0.5) & (Z <= 0.5)) | (((0.35 - sqrt(((Z-0)-0)**2 + ((0 + ((X--0.6)-0)/0.75)-0)**2))**2 + ((0 + ((Y-0)-0)/3)-0)**2) <= 0.05**2) | ((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.1**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5)))) & ~(((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.4**2) & (Z >= -0.4) & (Z <= 0.6)))) & ~(((((0.55 - sqrt((X-1.05)**2 + (Z--0.1)**2))**2 + (Y-0)**2) <= 0.075**2)) & (((X >= -1.5) & (X <= 0.9) & (Y >= -1.5) & (Y <= 1.5) & (Z >= 0) & (Z <= 1.5))))) & ~(((X >= 0) & (X <= 1.5) & (Y >= -1.5) & (Y <= 0) & (Z >= -1.5) & (Z <= 1.5)))";
 
   //infix = "(((((((0 + (X-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 + ((0 + (Y-0)/(0.75 + 0.5*cos(-1.57079632679 + (1.57079632679--1.57079632679)*(Z--0.5)/(0.5--0.5))))-0)**2 <= 0.5**2)";
 
@@ -138,7 +140,7 @@ int main(int argc, char* argv[]) {
   // a specified recursion depth    
   cout << "Evaluating Expression on Octree... ";
   start_clock();
-  octree.eval(6);
+  octree.eval(5);
   end_clock();
 
   //TESTING OF TOOL_PATH generation
@@ -189,44 +191,51 @@ int main(int argc, char* argv[]) {
 			cout << octree.eval_at_point(xp, yp, 0) << " ";
 	  }
 	  cout << "\n";
-  }
-*/
+	  }*/
 
-  cout << "Triangulating Object... ";
+  cout << "Tree-Triangulating Object...";
   start_clock();
-  trimesh_t trimesh; 
-  trimesh.populate(&octree, &si, 150, 150, 150);
+  trimesh_t *trimesh;
+  octree.trimesh(&trimesh);
   end_clock();
 
-  cout << "Refining Triangulation... ";
+  /*    cout << "Triangulating Object... ";
   start_clock();
-  trimesh.refine();
-  end_clock();	
+  trimesh_t *trimesh = new trimesh_t(); 
+  trimesh->populate(&octree, &si, 256, 256, 256);
+  end_clock();*/
 
-  cout << "Marking triangles needing further refinement... ";
+ /*cout << "Refining Triangulation... ";
   start_clock();
-  trimesh.mark_triangles_spanning_surfaces();
+  trimesh->refine();
+  end_clock();	*/
+
+ /* cout << "Marking triangles needing further refinement... ";
+  start_clock();
+  trimesh->mark_triangles_spanning_surfaces();
   end_clock();
 
 	cout << "moving verticies toward corners and edges...";
   start_clock();
-	trimesh.move_veticies_onto_edges_and_corners_using_normals();
+	trimesh->move_veticies_onto_edges_and_corners_using_normals();
   end_clock();
-
+*/
 
 	cout << "recalculating normals...";
  start_clock();  
-	trimesh.recalculate_normals();
+	trimesh->recalculate_normals();
  end_clock();
 
 	cout << "writing STL file...\n";
-	trimesh.write_stl("teapot.stl");
+	trimesh->write_stl("teapot.stl");
    //cout << trimesh;
 
 #ifdef WIN32
 	cout << "showing graphics...\n";
-  show_graphics_window(hInstance, trimesh);
+  show_graphics_window(hInstance, *trimesh);
 #endif
+
+  delete trimesh;
 
   return(0);
 

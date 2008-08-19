@@ -131,10 +131,13 @@ expression_t::expression_t(const expression_t &a) {
 expression_t::~expression_t() {
   int i;
   
+  if (children != NULL) {
+
   for (i=0; i<num_children; i++) {
     delete children[i]; 
   }
   delete []children;    
+  }
   delete clause_table;
 }
 
@@ -404,6 +407,23 @@ interval_t expression_t::eval(space_interval_t &vars) {
 }
 
 
+// Re-roots a subtree at the current expression node: shallow-deleting the contents
+// of the current node and replacing it with a shallow copy of the old node, child 
+// pointers intact, then deleting the old subtree root node
+void expression_t::reroot(expression_t *subtree) {
+	  data = subtree->data;
+	  evaluator = subtree->evaluator;
+	  delete[] children;
+	  children = subtree->children;
+	  num_children = subtree->num_children;
+	  var = subtree->var;
+
+	  subtree->children = NULL;  // array ownership was transfered above --- keep children + children array from getting deleted
+	  delete subtree;  // actually only deletes old root node of subtree
+}
+
+
+
 // Simplifies an expression for faster evaluation on subparts of this evaluation domain
 // 
 // Specifically: 
@@ -411,18 +431,28 @@ interval_t expression_t::eval(space_interval_t &vars) {
 // Subtrees that evaluate to a real number, TRUE, or FALSE are replaced with a literal
 // subtrees rooted by AND operators with TRUE as one arg are are replaced by their other arg
 // subtrees rooted by OR operrators with FALSE as one arg are replacd by their other arg
+// not of greater than -> less than, etc.
+// if do_float_opt = 1:
 // Division by a real number literal is replaced with multiplication by the reciprocal
+// Addition, Subtraction, Multiplication, or Division by 0 / 1 are simplified (very common with neil.lib)
 
-// Should also add: adding/subtracting zero, multiplying by zero, multiplying by 1   (FEATURE REQUEST ************)
+// There are a whole bunch of other optimizations that could be added, TOOD
+// e.g. negation of subtraction reverses args
+// cosine of negation can remove negation
+// But I don't know if these are worth the time to check..
 
-
-interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_prune, int child_num, expression_t *parent) {
+interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_prune, int child_num, expression_t *parent, int do_float_opt) {
   interval_t null_interval;  
   interval_t arg1;
   interval_t arg2;
   interval_t result;
   interval_t tmp;
   expression_t *subtree;
+
+
+  // default is 0
+  *would_prune = 0;
+
 
 	// Quick-and-dirty invalivation of clause table on any pruning activity.
     // Maybe there is a better place to put this that invalidates less
@@ -454,7 +484,7 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
       break;
     case 1:
       // UNARY OPERATOR
-      arg1 = children[0]->prune(vars, do_prune, would_prune, 0, this);
+      arg1 = children[0]->prune(vars, do_prune, would_prune, 0, this, do_float_opt);
       result = (*evaluator)(arg1, null_interval);
 
       // If this subtree is resolved
@@ -467,12 +497,47 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
 	  data = result;
 	}
       }
+      	  // Simplify not greater than to less than, etc. 
+	      // This actually gets used a huge amount as the expression is simplified down the tree.
+	  else if (evaluator == &(interval_t::bool_not)) {
+		  subtree = children[0];
+		  if (subtree->evaluator == &(interval_t::greater_than)) {
+			  *would_prune = 1;
+			  if (do_prune) {
+				  this->reroot(subtree);
+				  evaluator = &(interval_t::less_than_or_equals);
+			  }
+		  }
+		  else if (subtree->evaluator == &(interval_t::less_than)) {
+			  *would_prune = 1;
+			  if (do_prune) {
+				  this->reroot(subtree);
+				  evaluator = &(interval_t::greater_than_or_equals);
+			  }
+		  }
+		  if (subtree->evaluator == &(interval_t::greater_than_or_equals)) {
+			  *would_prune = 1;
+			  if (do_prune) {
+				  this->reroot(subtree);
+				  evaluator = &(interval_t::less_than);
+			  }
+		  }
+		  else if (subtree->evaluator == &(interval_t::less_than_or_equals)) {
+			  *would_prune = 1;
+			  if (do_prune) {
+				  this->reroot(subtree);
+				  evaluator = &(interval_t::greater_than);
+			  }
+		  }
+	  }
+
+
 
       return(result);
       break;
     case 2:
       // BINARY OPERATOR
-      arg1 = children[0]->prune(vars, do_prune, would_prune, 0, this);
+      arg1 = children[0]->prune(vars, do_prune, would_prune, 0, this, do_float_opt);
 
       // Lazy evaluation
       if ( arg1.is_resolved() && 
@@ -483,7 +548,7 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
       }
       else {
 	// Arg 2 is needed. Evaluate it!
-	arg2 = children[1]->prune(vars, do_prune, would_prune, 1, this);
+	arg2 = children[1]->prune(vars, do_prune, would_prune, 1, this, do_float_opt);
       }
       result = (*evaluator)( arg1 , arg2 );
       
@@ -492,7 +557,7 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
       if (result.is_resolved()) {
 	// Delete this subtree's children and make this a literal leaf
 	// Note: This handles a lot of supposed other cases,
-	// such as AND with false or OR with true
+	// such as AND with false or OR with true, or boolean negation of true or false
 	*would_prune = 1;
 	if (do_prune) {
 	  delete children[0];
@@ -503,10 +568,14 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
       }
       // If this node is an AND with one TRUE arg
       else if  ( (evaluator ==  &(interval_t::bool_and)) &&
-		 (arg1.is_true() || arg2.is_true() ) &&
-		 (parent != NULL) ) {
+		  (arg1.is_true() || arg2.is_true() )) {
+		// (parent != NULL) ) {
 	*would_prune = 1;
 	if (do_prune) {
+	// Make this support anding with true at the expression root as well,
+    // by shallow copying the non-true arg into the current node, then shallow-deleting
+	// the two original child nodes
+
 	  if (arg1.is_true()) {
 	    subtree = children[1];
 	    delete children[0];
@@ -515,16 +584,14 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
 	    subtree = children[0];
 	    delete children[1];
 	  }
-	  // Remove this node from the tree
-	  parent->children[child_num] = subtree;
-	  num_children = 0;
-	  delete this;
+	  this->reroot(subtree);
+
 	}
       }
       // If this node is an OR with one FALSE arg
       else if  ( (evaluator ==  &(interval_t::bool_or)) &&
-		 (arg1.is_false() || arg2.is_false() ) &&
-		 (parent != NULL)) {
+		  (arg1.is_false() || arg2.is_false() )) {
+		  //(parent != NULL)) {
 	*would_prune = 1;
 	if (do_prune) {
 	  if (arg1.is_false()) {
@@ -535,31 +602,133 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
 	    subtree = children[0];
 	    delete children[1];
 	  }
-	  // Remove this node from the tree
-	  parent->children[child_num] = subtree;
-	  num_children = 0;
-	  delete this;
+	  this->reroot(subtree);
 	}
-      }
+	  }
+
+	  else if (do_float_opt) {
+
+
+	   // NOTE: In this sequence, if a case is met, no further cases will be checked.  I think this is OK
+	   // due to the details --- but if you are adding a new optimization here, you should think it through
+	   // and make sure these are all actually mutually exclusive.
+
+	  // Check for identity element 0 on arg1
+	   if (arg1.is_real_number() && arg1.get_lower() == 0) {
+		  if (evaluator == &(interval_t::add)) {
+			  // Adding zero : replace add with other arg
+			  *would_prune = 1;
+			  if (do_prune) {
+				subtree = children[1];
+				delete children[0];
+				reroot(subtree);
+			  }
+		  }
+		  else if (evaluator == &(interval_t::sub)) {
+			  // 0 - arg --> unary minus arg
+			  *would_prune = 1;
+			  if (do_prune) {
+			    delete children[0];  // delete the zero
+				evaluator = &(interval_t::unary_minus);
+				subtree = children[1]; // save the right argt
+				delete[] children;  // replace the old 2-long children array with a 1-long children array
+				num_children = 1;
+				children = new expression_t*[1];
+				children[0] = subtree;  // make the right arg the child
+			  }
+		  }
+		  else if (evaluator == &(interval_t::mul)) {
+			  // Multiplying by zero --- replace multiply with literal zero (which will then recurse up)
+			  *would_prune = 1;
+			  if (do_prune) {			  
+				subtree = children[0];
+				delete children[1];
+				reroot(subtree);
+			  }
+		  }
+	  }
+	  // Check for identity element 0 on arg2
+	  else if (arg2.is_real_number() && arg2.get_lower() == 0) {
+		  if (evaluator == &(interval_t::add)) {
+			  // Adding zero : replace add with other arg
+			  *would_prune = 1;
+			  if (do_prune) {	
+			  subtree = children[0];
+			  delete children[1];
+			  reroot(subtree);
+			  }
+		  }
+		  else if (evaluator == &(interval_t::sub)) {
+			  // Subtracting zero : replace sub with first arg
+			  *would_prune = 1;
+			  if (do_prune) {	
+			  subtree = children[0];
+			  delete children[1];
+			  reroot(subtree);
+			  }
+		  }
+		  else if (evaluator == &(interval_t::mul)) {
+			  // Multiplying by zero --- replace multiply with literal zero (which will then recurse up)
+			 *would_prune = 1;
+			  if (do_prune) {				  
+			  subtree = children[1];
+			  delete children[0];
+			  reroot(subtree);
+			  }
+		  }
+	  }
+	  // DOES DIVISION BY 1 PROPAGATE THROUGH?  OR SHOULD IT BE EXPLICITLY HANDLED?
+	  // Check for identity element 1 on arg1
+	  else if (arg1.is_real_number() && arg1.get_lower() == 1) {
+		  if  (evaluator == &(interval_t::mul)){
+			  // Multiplying 1 * expression --- just keep expression
+			  *would_prune = 1;
+			  if (do_prune) {			  
+				subtree = children[1];
+				delete children[0];
+				reroot(subtree);
+			  }
+		  }
+	  }
+	  // Check for identity element 1 on arg2
+	  else if (arg2.is_real_number() && arg2.get_lower() == 1) {
+		  if ((evaluator == &(interval_t::mul)) || (evaluator == &(interval_t::div))) {
+			  // Multiplying or Dividing  expression * 1
+			  *would_prune = 1;
+			  if (do_prune) {			  
+				subtree = children[0];
+				delete children[1];
+				reroot(subtree);
+			  }
+		  }
+	  }
+
       // If this node is DIV by a real number literal, replace with mul by recip
+	  // Note: We need to create a new leaf here because the RHS literal might be a whole evaluated subtree, not a leaf
       else if ( (evaluator == &(interval_t::div)) &&
 		(arg2.is_real_number()) ) {
 	*would_prune = 1;
 
 	if (do_prune) {
-	  // Create a new literal leaf
+	//	cout << *this << "\n";
+		
+		// Create a new literal leaf			
 	  subtree = new expression_t(0);
 	  // Set to reciprocal of arg2
-	  tmp.set_real_number(1.0);
-	  subtree->data = interval_t::div(tmp, arg2);	  
+	  subtree->data.set_real_number(1.0f/arg2.get_lower());
+	 // tmp.set_real_number(1.0);
+	 // subtree->data = interval_t::div(tmp, arg2);	  
 	  // Delete old arg2
 	  delete children[1];	  
 	  // Replace with new literal leaf
 	  children[1] = subtree;
 	  // Change op to multiply
 	  evaluator = &(interval_t::mul);
+
+	//  cout << *this << "\n";
 	}
       }
+	  }
       return(result);
       break;
     }
@@ -576,7 +745,7 @@ void expression_t::build_children(int num_children_in) {
 }
 
 int float_equals(float x, float y) {
-  float tol = ( fabsf(x) + fabsf(y) )*1e-6;
+  float tol = ( fabsf(x) + fabsf(y) )*1e-6f;
   
   if (fabsf(x-y) < tol) 
     return(1);

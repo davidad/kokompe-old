@@ -19,7 +19,8 @@ private:
 
 
     //int lazy;  
-  void build_children(int num_children_in); 
+  void build_children(int num_children_in);
+  void reroot(expression_t *subtree);
   void clause_table_recurser(clause_table_t *clause_table);
   void mark_clause_numbers_recurser(int *max_clause_number);
   int count_clauses();
@@ -34,7 +35,7 @@ public:
   expression_t(string postfix);
   ~expression_t();
   interval_t eval(space_interval_t &vars);
-  interval_t prune(space_interval_t &vars, int do_prune, int *would_prune, int child_num, expression_t *parent);
+  interval_t prune(space_interval_t &vars, int do_prune, int *would_prune, int child_num, expression_t *parent, int do_float_opt);
   void derivative(expression_t *in_expression, int d_var);
   void mark_clause_numbers();
   void create_clause_table();

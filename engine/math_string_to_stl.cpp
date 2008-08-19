@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
   // numbers into constants
   int dummy = 0;
   cerr << "Simplifying expression.\n";
-  ex.prune(si, 1, &dummy, 0, NULL);
+  ex.prune(si, 1, &dummy, 0, NULL, 1);
   
   cerr << "Marking clause numbers.\n";
   ex.mark_clause_numbers();
@@ -164,11 +164,12 @@ int main(int argc, char** argv) {
 
   // Create and evaluate a trimesh
   cerr << "Populating trimesh.\n";
-  trimesh_t trimesh;
-  trimesh.populate(&octree,&si, nx, ny, nz);  
+  trimesh_t *trimesh;
+  octree.trimesh(&trimesh);
+  //  trimesh.populate(&octree,&si, nx, ny, nz);  
   if (renderlevel >= 1) {
     cerr << "Refining trimesh.\n";  
-    trimesh.refine();
+    trimesh->refine();
   
     if (renderlevel >= 2) {
       //cerr << "Marking triangles near edges and corners.\n";
@@ -176,13 +177,13 @@ int main(int argc, char** argv) {
       //cerr << "Adding centroid to determine inside from outside.\n";
       //trimesh.add_centroid_to_object_distance();
       cerr << "Marking triangles spanning faces.\n";
-      trimesh.mark_triangles_spanning_surfaces();
+      trimesh->mark_triangles_spanning_surfaces();
       cerr << "Moving verticies toward corners.\n";
-      trimesh.move_veticies_onto_edges_and_corners_using_normals();
+      trimesh->move_veticies_onto_edges_and_corners_using_normals();
     }  
 
     cerr << "Recalculating normals...\n";
-    trimesh.recalculate_normals();
+    trimesh->recalculate_normals();
   }
   
 
@@ -197,11 +198,13 @@ int main(int argc, char** argv) {
    
    
    cerr << "Writing STL.\n";
-   trimesh.fill_stl(&stl, &stl_length);
+   trimesh->fill_stl(&stl, &stl_length);
    
    // Write STL data to stdout
    cout.write(stl, stl_length);
    delete []stl;
+
+   delete trimesh;
  
    cerr << "Done.\n";
 

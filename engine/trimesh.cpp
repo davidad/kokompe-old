@@ -56,6 +56,255 @@ trimesh_t::~trimesh_t() {
   this->depopulate();
 }
 
+// Return the standardized number of an edge given the number
+// of its verticies
+inline int get_edge_number(int start_vertex, int end_vertex) {
+	int lower_vertex, upper_vertex;
+
+	if (start_vertex < end_vertex) {
+		lower_vertex = start_vertex;
+		upper_vertex = end_vertex;
+	}
+	else {
+		lower_vertex = end_vertex;
+		upper_vertex = start_vertex;
+	}
+
+	// 0-1 is edge 0
+	// 1-2 is edge 1
+	// 2-0 is edge 2
+	if (lower_vertex == 1) {
+		return(1);
+	}
+	else if (upper_vertex == 1) {
+		return(0);
+	}
+	else {
+		return(2);
+	}
+}
+
+inline int opposite_vertex_from_edge (int edge) {
+	return((edge + 2)%3);
+}
+
+inline int next_vertex(int vertex) {
+	return((vertex + 1)%3);
+}
+
+
+
+void trimesh_t::add_vertex(vertex_t *vertex, vector_t *inside_point, vector_t *outside_point) {
+	verticies.push_back(vertex);
+	vertex_inside_point.push_back(inside_point);
+	vertex_outside_point.push_back(outside_point);
+}
+
+void trimesh_t::add_triangle(vertex_t *v1, vertex_t *v2, vertex_t *v3, vector_t normal) {
+
+
+
+	// Used to located edge neighbors
+	vertex_t *start_vertex, *end_vertex;
+	list<trimesh_node_t*>::iterator triangle_iterator;
+	int my_edge, your_edge, your_start_vertex, your_end_vertex;
+		
+	trimesh_node_t *node = new trimesh_node_t();
+		// Populate verticies
+		node->verticies[0] = v1;
+		node->verticies[1] = v2;
+		node->verticies[2] = v3;
+		// Add normal
+		node->normal = normal;
+
+		// Add references to verticies used-lists
+		for (int i=0; i<3; i++) {
+			node->verticies[i]->triangle_list.push_back(node);  // add reference to vertex's users list
+		}
+			
+
+		// Populate edge neighbors
+		// For each vertex that starts an edge, look at the list of triangles that
+		// use this vertex and see if a different triangle shares the other vertex on 
+		// that edge.  If so they are neighbors --- mark as such in both
+		for (my_edge=0; my_edge<3; my_edge++) {
+			start_vertex = node->verticies[my_edge];
+			end_vertex = node->verticies[(my_edge+1)%3];
+
+			// For each vertex neighbor triangle
+			for(triangle_iterator = start_vertex->triangle_list.begin(); triangle_iterator != start_vertex->triangle_list.end(); triangle_iterator++) {
+				// I am not my own neighbor --- do not consider self
+				if ((*triangle_iterator) != node) {
+					//This is a different triangle that shares the start_vertex.
+					// Check to see if it shares the end_vertex of this edge.
+					for (your_end_vertex = 0; your_end_vertex<3; your_end_vertex++) {
+						if ((*triangle_iterator)->verticies[your_end_vertex] == end_vertex) {
+							// Found a neighbor! 
+							
+							// Mark the neighbor as an edge
+							node->neighbors[my_edge] = (*triangle_iterator);
+							
+							// Mark myself as an edge in their list
+							// First find their number for the start vertex
+							for (your_start_vertex=0; your_start_vertex<3; your_start_vertex++) {
+								if ((*triangle_iterator)->verticies[your_start_vertex] == start_vertex)
+									break;
+							}
+							// Convert the pair of vertex numbers to an edge number
+							your_edge = get_edge_number(your_start_vertex, your_end_vertex);
+							// Write into their data structure
+							(*triangle_iterator)->neighbors[your_edge] = node;
+						}
+					}
+				}
+			}	
+		}
+
+		// Assign the normal 
+		//node->normal = normal;
+		
+		// Add to list
+		//cout << "added.\n";
+		triangles.push_back(node);
+		
+
+
+		num_triangles++;
+	}
+
+
+// When we discover vertex doubling, this function is used to replace the reference to the
+// old vertex with a reference to the new vertex
+// IS THIS SUFFICIENT?
+void trimesh_t::replace_vertex(vertex_t *oldv, vertex_t *newv) {
+	list<trimesh_node_t*>::iterator triangle_iterator;
+	list<trimesh_node_t*>::iterator t1;
+	list<trimesh_node_t*>::iterator t2;
+
+			// Replace references to the old vertex with the new vertex
+			for(triangle_iterator = oldv->triangle_list.begin(); triangle_iterator != oldv->triangle_list.end(); triangle_iterator++) {
+				for (int i=0; i<3; i++) {
+					if ((*triangle_iterator)->verticies[i] == oldv) {
+						(*triangle_iterator)->verticies[i] = newv;
+					}
+				}
+				newv->triangle_list.push_back(*triangle_iterator);
+			}
+
+			// Zero out this vertex's triangle list so we know that we can discard it later
+			oldv->triangle_list.clear();
+
+
+			// Now check to see if any of the triangles on this vertex's triangle list are in fact
+			// (new) edge neighbors of each other, and if so, mark them as such
+
+			int vcom, v1, v2;
+
+			// Consider triangles in pairs
+			for(t1 = newv->triangle_list.begin(); t1 != newv->triangle_list.end(); t1++) {
+
+
+				vcom = -1;
+				// Figure out which vertex of t1 is the one we are merging
+				for(int vc=0; vc<3; vc++) {
+					if ((*t1)->verticies[vc] == newv) {
+						vcom = vc;
+						break;
+					}
+				}
+
+				// DEBUG TRIPWIRE
+				if (vcom == -1) {
+					cout << "oops!";
+				}
+
+				for(t2 = newv->triangle_list.begin(); t2 != newv->triangle_list.end(); t2++) {
+
+					if (*t1 != *t2) {
+
+						// Consider verticies in pairs
+						for (v1=0; v1<3; v1++) {
+							for (v2=0; v2<3; v2++) {
+
+								// If the verticies are the same
+								if ((*t1)->verticies[v1] == (*t2)->verticies[v2]) {
+									// and the vertex is not the one we joined them at
+									if ((*t1)->verticies[v1] != newv) {
+										// Then we have found a possibly new edge in common.  Mark
+										int edgeno = get_edge_number(vcom, v1);
+										if ((*t1)->neighbors[edgeno] == NULL)
+											(*t1)->neighbors[edgeno] = *t2;
+										else if ((*t1)->neighbors[edgeno] != (*t2)) {
+											cout << "Inconsistent edge numbers found!";
+										}
+
+
+										//(*t1)->neighbors[] = *t2;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+}
+
+
+void trimesh_t::check_neighbors() {
+	list<trimesh_node_t*>::iterator triangle_iterator;
+		list<vertex_t*>::iterator vertex_iterator;
+
+	for(triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+
+			(*triangle_iterator)->dirty = 0;
+		for (int n=0; n<3; n++) {
+			if ((*triangle_iterator)->neighbors[n] == NULL) {
+				cout << "Null neighbor!\n";
+			(*triangle_iterator)->dirty = 1;
+			}
+
+
+		}
+	}
+
+	for (vertex_iterator = verticies.begin(); vertex_iterator != verticies.end(); vertex_iterator++) {
+		int sz =  (*vertex_iterator)->triangle_list.size();
+		if ((sz >0) && (sz <3)) {
+			cout << "slightly used vertex!";
+	}
+	}
+
+
+
+
+
+
+
+
+}
+
+
+
+void trimesh_t::add_voxel_center(vector_t *v) {
+	voxel_centers.push_back(v);
+}
+
+
+// merge trimesh a into this trimesh  --- after this it is O.K. to destruct trimesh a w/o problems,
+// because all its STL lists are emptied
+// TODO: CHECK THAT IT WORKS!
+void trimesh_t::merge(trimesh_t &a) {
+	triangles.splice(triangles.end(), a.triangles);
+	verticies.splice(verticies.end(), a.verticies);
+	vertex_inside_point.splice(vertex_inside_point.end(), a.vertex_inside_point);
+	vertex_outside_point.splice(vertex_outside_point.end(), a.vertex_outside_point);
+	voxel_centers.splice(voxel_centers.end(), a.voxel_centers);
+	num_triangles += a.num_triangles;
+	a.num_triangles = 0;
+}
+
+
 
 // Set up the tables used to populate a trimesh
 void trimesh_t::initialize_tables() {
@@ -304,41 +553,6 @@ void trimesh_t::depopulate() {
 
 
 
-// Return the standardized number of an edge given the number
-// of its verticies
-inline int get_edge_number(int start_vertex, int end_vertex) {
-	int lower_vertex, upper_vertex;
-
-	if (start_vertex < end_vertex) {
-		lower_vertex = start_vertex;
-		upper_vertex = end_vertex;
-	}
-	else {
-		lower_vertex = end_vertex;
-		upper_vertex = start_vertex;
-	}
-
-	// 0-1 is edge 0
-	// 1-2 is edge 1
-	// 2-0 is edge 2
-	if (lower_vertex == 1) {
-		return(1);
-	}
-	else if (upper_vertex == 1) {
-		return(0);
-	}
-	else {
-		return(2);
-	}
-}
-
-inline int opposite_vertex_from_edge (int edge) {
-	return((edge + 2)%3);
-}
-
-inline int next_vertex(int vertex) {
-	return((vertex + 1)%3);
-}
 
 
 
@@ -501,7 +715,7 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 				(verticies_table[edge_slice][index])->si.set(x-xstep*range, x+xstep*range, y-ystep*range, y+ystep*range,z-zstep*range, z+zstep*range);
 				verticies.push_back(verticies_table[edge_slice][index]);
 				vertex_inside_point.push_back(voxel_centers_table[in_slice][in_index]);
-				vertex_outside_point.push_back(voxel_centers_table[out_slice][out_index]);
+				vertex_outside_point.push_back(voxel_centers_table[out_slice][out_index]);	
 			}				
 			quad[i] = verticies_table[edge_slice][index];
 		}
@@ -562,8 +776,8 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 		node->normal = normal;
 		
 		// Mark the voxel centers table (SLATED FOR REMOVAL --- NOT USED)
-		node->interior_point = voxel_centers_table[in_slice][in_index];
-		node->exterior_point = voxel_centers_table[out_slice][out_index];
+		//	node->interior_point = voxel_centers_table[in_slice][in_index];
+		//		node->exterior_point = voxel_centers_table[out_slice][out_index];
 
 		//cout << node->normal;
 		//cout << *(node->verticies[0]);
@@ -662,130 +876,6 @@ int ratio_test(vertex_t verticies[3], int* bad_vertex) {
 		return(0);
 }
 
-// Takes two edge-neighbor triangles, joins them into a quadrilateral,
-// and then splits them the opposite way.  This is used to repair degenerate
-// triangles and to remove very small sliver triangles.
-int trimesh_node_t::repair_triangles(trimesh_node_t* triangle_a, trimesh_node_t* triangle_b) {
-	int i,j, edge_a = -1, edge_b = -1, dummy;
-	vertex_t* quad_verticies[4];
-	trimesh_node_t* quad_neighbors[4];
-	trimesh_node_t* old_quad_neighbor[4];
-	trimesh_node_t* new_quad_neighbor[4];
-	vertex_t verticies_a[3];
-	vertex_t verticies_b[3];
-	vector_t normal_a, normal_b;
-	int vertex_a[3];
-	int vertex_b[3];
-
-
-	// Get the common edge
-	for (i=0; i<3; i++) {
-		if ((triangle_a->neighbors[i]) == triangle_b) 
-			edge_a = i;
-		if ((triangle_b->neighbors[i]) == triangle_a)
-			edge_b = i;
-	}
-
-	// If these triangles are not edge neighbors, return without doing anything
-	if ((edge_a == -1) || (edge_b == -1))
-		return(1);
-
-	// The verticies for quadrilateral, in order, are:
-	// opposite vertex of a from edge
-	// next vertex of a
-	// opposite vertex of b from edge
-	// next vetex of a
-
-	vertex_a[0] = opposite_vertex_from_edge(edge_a);
-	vertex_a[1] = next_vertex(vertex_a[0]);
-	vertex_a[2] = next_vertex(vertex_a[1]);
-	vertex_b[0] = opposite_vertex_from_edge(edge_b);
-	vertex_b[1] = next_vertex(vertex_b[0]);
-	vertex_b[2] = next_vertex(vertex_b[1]);
-
-	quad_verticies[0] = triangle_a->verticies[vertex_a[0]];
-	quad_verticies[1] = triangle_a->verticies[vertex_a[1]];
-	quad_verticies[2] = triangle_b->verticies[vertex_b[0]];
-	quad_verticies[3] = triangle_b->verticies[vertex_b[1]];
-
-	// The edge neighbors for the quadrilateral come from calling
-	// get edge on the vertex number list...
-	
-	quad_neighbors[0] = triangle_a->neighbors[get_edge_number(vertex_a[0], vertex_a[1])];
-	quad_neighbors[1] = triangle_b->neighbors[get_edge_number(vertex_b[2], vertex_b[0])];
-	quad_neighbors[2] = triangle_b->neighbors[get_edge_number(vertex_b[0], vertex_b[1])];
-	quad_neighbors[3] = triangle_a->neighbors[get_edge_number(vertex_a[2], vertex_a[0])];
-
-	// Test resultant triangles to make sure they both pass the ratio test, and their
-	// normal angle is not too different.  If not, do not do this. (This catches the case of
-	// non-convex quadrilaterals) 
-
-	verticies_a[0] = *quad_verticies[0];
-	verticies_a[1] = *quad_verticies[1];
-	verticies_a[2] = *quad_verticies[2];
-	verticies_b[0] = *quad_verticies[2];
-	verticies_b[1] = *quad_verticies[3];
-	verticies_b[2] = *quad_verticies[0];
-
-	if (ratio_test(verticies_a, &dummy) && ratio_test(verticies_b, &dummy)) {
-
-		normal_a = normalize(cross(sub(verticies_a[1],verticies_a[0]), sub(verticies_a[2], verticies_a[0])));
-		normal_b = normalize(cross(sub(verticies_b[1],verticies_b[0]), sub(verticies_b[2], verticies_b[0])));
-
-		// If triangles have the same normal to within 90 degrees...
-		if (dot(normal_a, normal_b) > 0) {
-		// Write them out.
-
-			old_quad_neighbor[0] = triangle_a;
-			old_quad_neighbor[1] = triangle_b;
-			old_quad_neighbor[2] = triangle_b;
-			old_quad_neighbor[3] = triangle_a;
-
-
-			// Now split the quadrilateral into two triangles, overwriting the old triangles
-
-			// Update Verticies
-			triangle_a->verticies[0] = quad_verticies[0];
-			triangle_a->verticies[1] = quad_verticies[1];
-			triangle_a->verticies[2] = quad_verticies[2];
-
-			triangle_b->verticies[0] = quad_verticies[2];
-			triangle_b->verticies[1] = quad_verticies[3];
-			triangle_b->verticies[2] = quad_verticies[0];
-
-			// Update Neighbors
-			triangle_a->neighbors[0] = quad_neighbors[0];
-			triangle_a->neighbors[1] = quad_neighbors[1];
-			triangle_a->neighbors[2] = triangle_b;
-
-			triangle_b->neighbors[0] = quad_neighbors[2];
-			triangle_b->neighbors[1] = quad_neighbors[3];
-			triangle_b->neighbors[2] = triangle_a;
-	
-			// Update our neigbors as to their new neighbors
-			new_quad_neighbor[0] = triangle_a;
-			new_quad_neighbor[1] = triangle_a;
-			new_quad_neighbor[2] = triangle_b;
-			new_quad_neighbor[3] = triangle_b;
-
-			for (j=0; j<4; j++) {
-				for(i=0; i<3; i++) {
-					if (quad_neighbors[j]->neighbors[i] == old_quad_neighbor[j]) {
-						quad_neighbors[j]->neighbors[i] = new_quad_neighbor[j];
-						break;
-					}
-				}
-			}
-			return(0);
-		}
-		else {
-			return(1);
-		}
-	}
-	else {
-		return(1);
-	}
-}
 
 
 
@@ -794,52 +884,10 @@ int trimesh_node_t::repair_triangles(trimesh_node_t* triangle_a, trimesh_node_t*
 
 
 
-// Mesh refinement is (theoretically) guaranteed not to change the topology of the mesh,
-// but it does produce triangles with a very large base-to-height ratio, which cause problems
-// in normal calculation.  Also (I think because of floating-point round-off errors) there are
-// sometimes very, very small height triangles with verticies just inside their neighbor that put folded-over
-// kinks in the mesh and cause problems for the STL output.
-
-// This method goes through the mesh and removes triangles with a very large base-to-height ratio, 
-// merging them with their base edge neighbor and then dividing the resulting quadrilateral into two
-// different triangles.  
-
-// It looks like we may want to run multiple passes of this, since there are some bad triangles that
-// do not have a good triangle for a neighbor!
-
-void trimesh_t::remove_splinters() {
-	list<trimesh_node_t*>::iterator triangle_iterator;
-	int edge, dummy, i, j=0, k = 0;
-	vertex_t new_verticies[3];
-
-	cout << "starting to desplinter.\n";
-
-	for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
-		// Copy verticies into a local list
-		for (i=0; i<3; i++)
-			new_verticies[i] = *(*triangle_iterator)->verticies[i];
-	
-		// Do ratio test
-		if (!ratio_test(new_verticies, &dummy)) {	
-			// If this triangle fails the test, search edge neighbors
-			// for one that passes
-			j++;
-			for(edge = 0; edge < 3; edge++) {						
-				if ((*triangle_iterator)->repair_triangles((*triangle_iterator), (*triangle_iterator)->neighbors[edge]) == 0) {
-					k++;
-					break;
-				}
-			}
-			// Combine and split these triangles into two non-degenerate triangles
-
-		}
-	}
 
 
 
 
-	cout << "try to desplinter " << j << "triangles, suceeded on " << k << "triangles \n";
-}
 
 
 // COMPUTE NORMALS FROM VERTEX POSITIONS
@@ -1173,113 +1221,7 @@ void trimesh_t::move_veticies_onto_edges_and_corners_using_normals() {
 	
 
 
-// Divide triangle1 into three new triangles, to be stored in triangle1-3.  Place the new vertex in vertex, 
-// and make sure the new vertex is on the object in octree
-int trimesh_node_t::divide_triangle(trimesh_node_t* triangle1, trimesh_node_t* triangle2,trimesh_node_t * triangle3,
-									 vertex_t* vertex,
-									 octree_t* octree,
-									 float search_distance) {
-
-	vector_t centroid, start_point, end_point, mid_point, normal;
-	
-
-
-	centroid = triangle_centroid(*triangle1->verticies[0], *triangle1->verticies[1], *triangle1->verticies[2]);	
-	normal = triangle1->normal;
-/*
-	int start_val, end_val, i;
-
-	// Find the right normal/antinormal direction to search in
-	// See if the centroid is on the object
-	if (octree->eval_at_point(centroid.x, centroid.y, centroid.z)) {
-		// If so, follow the normal to the boundary
-		end_point = add(centroid, mul(normal, search_distance));
-		// Is the proposed end point also on the object?
-
-
-
-		if (octree->eval_at_point(end_point.x, end_point.y, end_point.z)) {
-			// Disaster!  Punt.
-			return(1);
-		}
-		start_val = 1;
-		end_val = 0;
-
-	}
-	else {
-		// If not, follow the antinormal to the boundary
-		end_point = add(centroid, mul(normal, -search_distance));
-		// Is the proposed end point also not the object?
-		if (!(octree->eval_at_point(end_point.x, end_point.y, end_point.z))) {
-			// Disaster!  Punt.
-			return(1);
-		}
-		start_val = 0;
-		end_val = 1;
-	}
-	// At this point, we have an end point for our search, and know that the 
-	// object boundary lies somewhere in beteeen.  Binary search out the object position
-	start_point = centroid;
-
-	for(i=0; i<8; i++) {
-		mid_point = midpoint(start_point, end_point);
-		if (octree->eval_at_point(mid_point.x, mid_point.y, mid_point.z) == start_val) {
-			start_point = mid_point;
-		}
-		else {
-			end_point = mid_point;
-		}
-	}
-	mid_point = midpoint(start_point, end_point);
-
-	// Set the new vertex to the new point on the object
-	vertex->set_vector(mid_point);*/
-
-	vertex->set_vector(centroid);
-
-	// Now, build up the new triangle.
-	trimesh_node_t t = *triangle1;  // First copy the old triangle
-
-	// You can see how this works by drawing a triangle divided into three around a centroid
-	// vertex, and numbering the verticies of the new triangles so that they wind in the
-	// same direction as the old triangle and so that (an arbitrary choice) vertex 2 of all
-	// the new triangles is at the center point.  (and numbering the triangles so that THEY
-	// wind in the same direction as the orig. triangle, again, an arbitrary decision)
-
-	// First do the verticies
-	triangle1->verticies[0] = t.verticies[0];
-	triangle1->verticies[1] = t.verticies[1];
-	triangle1->verticies[2] = vertex;
-
-	triangle2->verticies[0] = t.verticies[1];
-	triangle2->verticies[1] = t.verticies[2];
-	triangle2->verticies[2] = vertex;
-
-	triangle3->verticies[0] = t.verticies[2];
-	triangle3->verticies[1] = t.verticies[0];
-	triangle3->verticies[2] = vertex;
-
-	// Then, the edge neighbors
-	triangle1->neighbors[0] = t.neighbors[0];
-	triangle1->neighbors[1] = triangle2;
-	triangle1->neighbors[2] = triangle3;
-
-	triangle2->neighbors[0] = t.neighbors[1];
-	triangle2->neighbors[1] = triangle3;
-	triangle2->neighbors[2] = triangle1;
-
-	triangle3->neighbors[0] = t.neighbors[2];
-	triangle3->neighbors[1] = triangle1;
-	triangle3->neighbors[2] = triangle2;
-
-	// Unset dirty bit
-	triangle1->dirty = 0;
-	triangle2->dirty = 0;
-	triangle3->dirty = 0;
-
-
-	return(0);
-}
+#ifdef OLDCODE
 
 
 
@@ -1690,180 +1632,7 @@ void trimesh_t::move_verticies_toward_corners() {
 		
 	}
 	
-
-void trimesh_t::add_centroid_to_object_distance() {
-	list<trimesh_node_t*>::iterator triangle_iterator;
-	vector_t centroid, normal, start_point, mid_point, end_point;
-	int punt, start_val, i;
-
-	float search_distance = (xstep+ystep+zstep);
-
-	for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
-		if ((*triangle_iterator)->dirty) {
-
-			// Compute location of centroid
-
-
-	centroid = triangle_centroid(*(*triangle_iterator)->verticies[0], *(*triangle_iterator)->verticies[1], *(*triangle_iterator)->verticies[2]);	
-	normal = (*triangle_iterator)->normal;
-
-	// See if the centroid is on the object
-	punt = 0;
-	if (octree->eval_at_point(centroid.x, centroid.y, centroid.z)) {
-		// If so, follow the normal to the boundary
-		end_point = add(centroid, mul(normal, search_distance));
-		// Is the proposed end point also on the object?
-
-		if (octree->eval_at_point(end_point.x, end_point.y, end_point.z)) 
-			punt = 1;
-		
-		start_val = 1;
-	}
-	else {
-		// If not, follow the antinormal to the boundary
-		end_point = add(centroid, mul(normal, -search_distance));
-		// Is the proposed end point also not the object?
-		if (!(octree->eval_at_point(end_point.x, end_point.y, end_point.z))) 
-			punt = 1;
-
-	
-		start_val = 0;
-	}
-	// At this point, we have an end point for our search, and know that the 
-	// object boundary lies somewhere in beteeen.  Binary search out the object position
-	
-	if (punt == 0) {
-	
-	start_point = centroid;
-
-	for(i=0; i<8; i++) {
-		mid_point = midpoint(start_point, end_point);
-		if (octree->eval_at_point(mid_point.x, mid_point.y, mid_point.z) == start_val) {
-			start_point = mid_point;
-		}
-		else {
-			end_point = mid_point;
-		}
-	}
-	mid_point = midpoint(start_point, end_point);
-
-	if (start_val)
-		(*triangle_iterator)->centroid_to_object = dist(mid_point, centroid);
-	else
-		(*triangle_iterator)->centroid_to_object = -dist(mid_point, centroid);
-
-	}
-				
-		}
-	}
-
-}
-
-
-	
-
-void trimesh_t::divide_triangles() {
-
-	// For each triangle marked as needing division (with dirty bit set), 
-	// follow the normal or anti-normal from the centroid to the object.  Put a new vertex there,
-	// and divide this triangle into three smaller triangles.
-
-	// The normal following is good for two reasons:
-	// 1. It keeps the new vertex strictly inside the projection of the old triangle
-	//    perpindicular to its plane, which keeps the new mesh valid.
-	// 2. It results in something like Newton shooting toward corners and edges,
-	//    resulting in better refinement of corners and edges than simply from an
-	//    increase in resolution
-	list<trimesh_node_t*>::iterator triangle_iterator;
-	trimesh_node_t* triangle1;
-	trimesh_node_t* triangle2;
-	trimesh_node_t* triangle3;
-	vertex_t* vertex;
-	
-	// Select the search distance
-	// Giant HACK!!!!  You need to clean up this idea
-	// (e.g. maybe by forcing square voxels)
-	float search_distance = ((xstep + ystep + zstep ));
-
-
-
-	for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++)
-		if ((*triangle_iterator)->dirty) {
-			//cout << "trying to divide a triangle.\n";
-			// Insert two new triangles (keeping the triangle list in approx. Z-sorted order)
-			triangle1 = *triangle_iterator;
-			triangle2 = new trimesh_node_t();
-			triangle3 = new trimesh_node_t();
-			vertex = new vertex_t();
-
-
-			// Divide the triangle into two new triangles
-			if(triangle1->divide_triangle(triangle1, triangle2, triangle3, vertex, octree, search_distance)) {
-				// If triangle division failed, delete the new triangles and vertex
-				//cout << "division failed.\n";
-				delete triangle2;
-				delete triangle3;
-				delete vertex;
-			}
-			else {
-				// If we were sucessful, add the new triangles and new vertex to the trimesh
-				//cout << "division suceeded.\n";
-				triangles.insert(triangle_iterator, triangle2);
-				triangles.insert(triangle_iterator, triangle3);
-				//triangle_iterator++;
-				//triangle_iterator++;
-				verticies.push_back(vertex);
-				vertex->number = next_vertex_number;
-				next_vertex_number++;
-			}
-		}
-}
-
-
-
-
-	
-
-
-
-
-/* Edge Refinement Algorithim:
-
-  TODO:
-  What we have works well, except that the edges are all messed up.
-
-  Edge refinement:
-
-  1. When making the trimesh, keep track of edge-neighbors.  Because of the way the
-  triangles are made, this should be reasonably straightforward.
-
-  2. Identify triangles with a large angle between their normal and an edge-neighbor's normal.
-  
-  3. For each of these triangles, compute the center point.  See if is is in the object.  If so, go 
-     out in the normal direction.  If not, go in the negative normal direction.  Go in one or two voxel grid
-	 units --- there should be object there.  If not, abort and don't worry about this triangle.  If there is,
-	 binary line search to find the edge of the object along that vector.  Put a new point there, and convert
-	 the existing triangle into three new triangles.  Compute the new normal of each.
-  
-  3. Repeat the above procedure N times.  This will produce a beautiful multi-resolution refinement of the
-     object's edges and points of high curvature.
-
-  ALSO TODO:
-
-  Profile this code.  It looks like you can't do that in MSVC, so do it with gnuprof.
-  You may discover craziness.  For example, the stl lists or continuous memory allocation 
-  or block filling may be a bad idea.
-
-  Edge detection:
-
-    After the edge refinement procedure, edge-neighbor triangles that still have a large angle between
-	them mark a bona-fine edge, or spot of extreme curvature.  Mark it with a black line.
-
-  Vertex detection:
-
-    Verticies shared by two edges are a vertex.  You could mark with a dot. */
-
-
+#endif
 
 
 
@@ -2007,7 +1776,7 @@ void trimesh_t::drawgl() {
 		v3 = *((*triangle_iterator)->verticies[2]);
 		
 		if ((*triangle_iterator)->has_unknown_clause) {
-			GLfloat mat_diffuse[] = { 0, 0.7,0, 1.0 };
+			GLfloat mat_diffuse[] = { 0.0, 0.7,0.0, 1.0 };
 			glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 	
 		}
@@ -2032,75 +1801,6 @@ void trimesh_t::drawgl() {
 
 #endif
 }
-
-
-void trimesh_t::write_3dm(string filename) {
-  
-  // Custom 3dm "3D-model" file format developed for Kokompe,
-  // for highly efficient communication of 3D geometry
-  // across a net connection to a browser-launched viewer
-   
-  fstream stl_file (filename.c_str(), ios::binary | ios::out | ios::trunc);
-  list<trimesh_node_t*>::iterator triangle_iterator;
-  list<vertex_t*>::iterator vertex_iterator;
-  
-  if (stl_file.fail()) {
-    cout << "Error opening STL output file.\n";
-    return;
-  }
-  else {
-
-    // File format:
-    // all 4-byte long / float blocks
-    // length of file in bytes
-    // coordinates of object center point (x,y,z) floats
-    // scale factor from object size == 2 , one float
-    // number of verticies
-    // verticies, packed
-    // number of triangles
-    // triangles, packed  (lists of 3 verticies by number)
-
-    // eventually, will add support for wireframes, colors,
-    // named objects, quadrilaterals, etc. --- but for the moment, KISS
-    
-    int file_size = 4* (7 + (next_vertex_number*3) + (num_triangles*3));
-    float xcenter = 10.0f;
-    float ycenter = 10.0f;
-    float zcenter = 10.0f;
-    float scalefactor = 1.0f;
-
-    stl_file.write((char*)&file_size, 4);
-    stl_file.write((char*)&xcenter, 4);
-    stl_file.write((char*)&ycenter, 4);
-    stl_file.write((char*)&zcenter, 4);
-    stl_file.write((char*)&scalefactor, 4);
-
-    stl_file.write((char*)&next_vertex_number, 4);
-
-
-    for (vertex_iterator = verticies.begin(); vertex_iterator != verticies.end(); vertex_iterator++) {
-      stl_file.write((char*)&(*vertex_iterator)->x, 4);
-      stl_file.write((char*)&(*vertex_iterator)->y, 4);
-      stl_file.write((char*)&(*vertex_iterator)->z, 4);
-    }
-
-    stl_file.write((char*)&num_triangles,4);
-
-    for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
-
-      stl_file.write((char*)&(*triangle_iterator)->verticies[0]->number,4);
-      stl_file.write((char*)&(*triangle_iterator)->verticies[1]->number,4);
-      stl_file.write((char*)&(*triangle_iterator)->verticies[2]->number,4);
-    }
-    
-    stl_file.close();
-    //cout << "closed file.\n";
-    
-  }
-
-}
-
-
 
 void trimesh_t::write_stl(string filename) {
   
@@ -2164,34 +1864,3 @@ void trimesh_t::write_stl(string filename) {
   }
 
 }
-
-
-
-
-
-
-// procedure:  walk octree, generating triangulated mesh.  need to mark
-// triangle neightbors so that tree is walkable for corner finding
-
-// generate triangles from voxels on sections of the evaluated voxel
-// grid.  This makes it easy to mark most triangles neigbors...just look over.
-// Finding boundary triangle neighbors could be tough w/o storage.
-
-// Need to search?  search for triangles without full complement of neighbors?
-// Or, do the object one layer at a time, always keeping two full layers, deleting
-// a layer just as the third is done.  This means neighboring triangles are
-// automatically recorded.
-
-// Identifying non-convex connected regions presents the standard connected
-// components problem: initiallly seperate regions may become the joined on a
-// new layer.  you can join connected regions by starting them out seperate and
-// then merging them...you can do all the triangle connections because the ragged
-// edge is fully documented by the layers stored in memory
-
-// writing STL or rendering OpenGL is easy: you iterate through the list
-
-// when writing xy slide, could put a code "2" in ints that are guaranteed not to be edges,
-// by being in interior of all 1's and all 0's regions, so the program does not even
-// have to check
-
-

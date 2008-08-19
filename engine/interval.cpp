@@ -404,21 +404,39 @@ interval_t interval_t::exp(const interval_t &a, const interval_t &b) {
 // Identical to powf(x,y), but checks for some trivial cases 
 // and computes them more efficiently
 inline float powcheckf(float x, float y) {
+  if (y == 1.0f) 
+       return(x);
+  else if (y == 2.0f)
+      return(x*x);
+  else if (y == 3.0f)
+      return(x*x*x);
+  else if (y== 4.0f) 
+      return(x*x*x*x);
+  else if (y== 5.0f)
+      return(x*x*x*x*x);
+  else if (y==6.0f)
+      return(x*x*x*x*x*x);
+  else
+      return(powf(x,y));
+    
+}
+
+/*
   if (y == 2)
     return(x*x);
   else if (y == 1)
     return(x);
   else
     return(powf(x,y));
-}
+    }*/
 
 #ifdef WIN32
-inline float roundf(float x) { return floorf(x + 0.5); }
+inline float roundf(float x) { return floorf(x + 0.5f); }
 #endif
 
 
 int is_integer(float x) {
-  float epsilon = 1e-6;
+  float epsilon = 1e-6f;
 
   if (fabsf( x - roundf(x)) < epsilon)
     return(1);
@@ -465,7 +483,7 @@ interval_t interval_t::power(const interval_t &a, const interval_t &b) {
 	}
 	else if (a.upper < 0) {
 	  // negative number to the zero power is infinity
-	  result.set_real_number(HUGE);
+	  result.set_real_number((float)HUGE);
 	}
 	else {
 	  // interval containing positive and negative numbers
@@ -594,3 +612,6 @@ interval_t interval_t::unary_minus(const interval_t &a, const interval_t &b) {
 }
 
 
+void interval_t::set_to_center(const interval_t &a) {
+	this->set_real_number((a.lower + a.upper)*0.5f);
+}
