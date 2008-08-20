@@ -43,6 +43,11 @@ ostream& operator<< (ostream &s, const interval_t &i) {
   return(s << "Invalid!");
 }
 
+
+int interval_t::is_equal(const interval_t &a) {
+	return  ((lower == a.lower) && (upper == a.upper) && (status == a.status));
+}
+
 //foo
 // Interval algrebra functions
 // Returns the interval of possible output values given the input

@@ -44,6 +44,7 @@ private:
   float get_length();
   int is_on(float number);
   void set_to_center(const interval_t &a);
+  int is_equal(const interval_t &a);
 
   static interval_t add(const interval_t &a, const interval_t &b);
   static interval_t sub(const interval_t &a,const interval_t &b);

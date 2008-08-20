@@ -95,6 +95,8 @@ expression_t::expression_t() {
 	var = -1;
 	clause_number = -1;
 	clause_table = NULL;
+	vardep = 0;
+	cache = NULL;
 }
 
 // Basic Internal Constructor
@@ -104,6 +106,8 @@ expression_t::expression_t(int num_children_in) {
   var = -1;
   clause_number = -1;
   clause_table = NULL;
+  vardep = 0;
+  cache = NULL;
 }
 
 // Copy Constructor
@@ -114,6 +118,8 @@ expression_t::expression_t(const expression_t &a) {
   var = a.var;
   data = a.data;
   evaluator = a.evaluator;
+  vardep = a.vardep;
+  cache = a.cache;
   //lazy = a.lazy;
   children = new expression_t*[a.num_children];
   
@@ -154,6 +160,8 @@ expression_t::expression_t(string postfix) {
   // Start with an empty clause table - not used in this fcn
   clause_number = -1;
   clause_table = NULL;
+  vardep = 0;
+
 
   // Debugging: print function address list:
   //for (i=0; i< fcn_num; i++) {
@@ -318,6 +326,68 @@ expression_t::expression_t(string postfix) {
 }
 
 
+// Recuse through the tree and create cache tables for all subparts of the 
+// expression that depend only on one variable
+int expression_t::mark_dependence() {
+	
+	if (num_children == 0) {
+	// base case	
+		if (var == -1) 
+			vardep = 0;
+		else if (var == 0)
+			vardep=0x01;
+		else if (var == 1)
+			vardep=0x02;
+		else if (var == 2)
+			vardep=0x04;
+		else {
+			cout << "unknown var";
+			vardep = 0;
+		}
+	}
+	else {
+		vardep = 0;
+		for (int i=0; i<num_children; i++) {
+			vardep |= children[i]->mark_dependence();
+		}
+	}
+	return(vardep);
+}
+
+int single_vardep(int vardep) {
+	if ((vardep == 0x01) || (vardep == 0x02) || (vardep == 0x04)) 
+		return(1);
+	else
+		return(0);
+}
+
+
+void expression_t::create_cache(int size) {
+	// recurse through the expression, creating cache nodes.
+	// once you get to a single vardep node, mark and then don't go 
+	// further down --- this then marks all subtrees at their highest point
+
+	cache = NULL;
+
+
+	if (single_vardep(vardep) && (num_children>0)) {
+		// subexpression depends on single variable
+		cache = new interval_t[size];
+	}
+	else if ((single_vardep(vardep) == 0) && (vardep > 0)) {
+		for(int i=0; i<num_children; i++) {
+			children[i]->create_cache(size);
+		}
+	}
+}
+
+
+
+
+
+
+
+
 // Evaluate an expression
 
 interval_t expression_t::eval(space_interval_t &vars) {
@@ -407,6 +477,92 @@ interval_t expression_t::eval(space_interval_t &vars) {
 }
 
 
+// Evaluate an expression
+
+interval_t expression_t::cached_eval(space_interval_t &vars, int lx, int ly, int lz, int cache_offset) {
+  /*  interval_t null_interval;  */
+  interval_t reg;
+
+  /*interval_t arg1;
+  interval_t arg2;
+  interval_t result;*/
+
+  /*  cout << "entering eval \n";
+  //cout << "num_children: " << num_children << "\n";
+  //cout << "var: " << var << "\n";
+  //cout << "data: " << data << "\n";
+  //cout << "this: " << (long)this << "\n";
+  //for (i=0; i < num_children; i++) {
+  //  cout << "Child " << i << " " << (long)children[i] << "\n";
+  //}
+  cout << "evaluator: " << (long)evaluator << "\n";*/
+
+
+  //  return(null_interval);
+  
+
+
+  if (cache != NULL) {
+	// expression subtree caching
+	int index;
+
+	// form address
+	  if (vardep == 0x01)
+		  index = lx;
+	  else if (vardep == 0x02)
+		  index = ly;
+	  else //if (vardep == 0x04)
+		  index = lz;
+	  //else 
+		//  cout << "Fault!";
+
+ 	  index += cache_offset;
+	/*  if ((vardep == 0x04) && (lz=-28) && (cache == (interval_t*)0x00ABE2D0)) {
+		cout << cache << "\n";
+		cout << *this << "\n";
+		cout << cache[index] << " vs " << this->eval(vars) << "\n";
+		cout << "foo!\n";
+	  }*/
+
+	 if (cache[index].is_unknown()) {
+		  cache[index] = this->eval(vars);
+	  }
+	 /*if (cache[index].is_unknown()) {
+		 	  cout << *this << "\n";
+		 cout << "fault!";
+	 } */ 
+	/* if (!(cache[index].is_equal(this->eval(vars)))) {
+		 		cout << cache << "\n";
+		 	  cout << *this << "\n";
+		cout << cache[index] << " vs " << this->eval(vars) << "\n";
+		cout << "foo!\n";
+	 }*/
+	  return(cache[index]);	  
+  }
+  else {
+
+  if (var > -1) {
+    return(vars.get_var_value(var));
+  }
+  else {     
+    
+    switch (num_children) {
+    case 0:
+      return(data);
+      break;
+    case 1:
+      return( (*evaluator)(children[0]->cached_eval(vars, lx, ly, lz, cache_offset), reg) );
+      break;
+    case 2:
+	  return((*evaluator)(children[0]->cached_eval(vars,lx,ly,lz,cache_offset),  children[1]->cached_eval(vars,lx,ly,lz,cache_offset)));
+      break;
+    }
+  }
+  return(reg);
+}
+}
+
+
 // Re-roots a subtree at the current expression node: shallow-deleting the contents
 // of the current node and replacing it with a shallow copy of the old node, child 
 // pointers intact, then deleting the old subtree root node
@@ -417,6 +573,8 @@ void expression_t::reroot(expression_t *subtree) {
 	  children = subtree->children;
 	  num_children = subtree->num_children;
 	  var = subtree->var;
+	  vardep = subtree->vardep;
+	  cache = subtree->cache;
 
 	  subtree->children = NULL;  // array ownership was transfered above --- keep children + children array from getting deleted
 	  delete subtree;  // actually only deletes old root node of subtree
@@ -495,11 +653,16 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
 	  delete children[0];
 	  num_children = 0;
 	  data = result;
+	  vardep = 0;
+	  cache = NULL;
+	  var = -1;
 	}
       }
       	  // Simplify not greater than to less than, etc. 
 	      // This actually gets used a huge amount as the expression is simplified down the tree.
-	  else if (evaluator == &(interval_t::bool_not)) {
+	  // However it is currently disabled because it interferes with subexpression caching, because it
+	  // actually changes the stored value of subexpressions.  (could re-add + make caching more sophisticated...)
+	/*  else if (evaluator == &(interval_t::bool_not)) {
 		  subtree = children[0];
 		  if (subtree->evaluator == &(interval_t::greater_than)) {
 			  *would_prune = 1;
@@ -529,7 +692,7 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
 				  evaluator = &(interval_t::greater_than);
 			  }
 		  }
-	  }
+	  }*/
 
 
 
@@ -564,6 +727,9 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
 	  delete children[1];
 	  num_children = 0;
 	  data = result;
+	  vardep = 0;
+	  cache = NULL;
+	  var = -1;
 	}
       }
       // If this node is an AND with one TRUE arg
@@ -716,7 +882,10 @@ interval_t expression_t::prune(space_interval_t &vars, int do_prune, int *would_
 	  subtree = new expression_t(0);
 	  // Set to reciprocal of arg2
 	  subtree->data.set_real_number(1.0f/arg2.get_lower());
-	 // tmp.set_real_number(1.0);
+	  subtree->var = -1;
+	  subtree->vardep = 0;
+	  subtree->cache = NULL;
+	  // tmp.set_real_number(1.0);
 	 // subtree->data = interval_t::div(tmp, arg2);	  
 	  // Delete old arg2
 	  delete children[1];	  

@@ -160,6 +160,7 @@ int main(int argc, char** argv) {
   // Construct and evaluate octree.
   cerr << "Creating octree.\n";
   octree_t octree(ex, si);
+  octree.create_cache(recursion_depth);
   octree.eval(recursion_depth);
 
   // Create and evaluate a trimesh

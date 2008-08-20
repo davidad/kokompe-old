@@ -185,6 +185,50 @@ int octree_t::eval_at_point(float x, float y, float z) {
   }
 }
 
+
+int octree_t::cached_eval_at_point(float x, float y, float z, int lx, int ly, int lz, int cache_offset) {
+  static octree_t* zone_hint = NULL;
+  if (children == NULL) {
+    if (value.is_resolved()) {
+      return(value.get_boolean());
+    }
+    else {
+      interval_t xi;
+      interval_t yi;
+      interval_t zi;
+      interval_t result;
+      
+      xi.set_real_number(x);
+      yi.set_real_number(y);
+      zi.set_real_number(z);
+      space_interval_t si(xi, yi, zi);
+      result = expression->cached_eval(si, lx,ly,lz,cache_offset);
+	  zone_hint = this;
+      return(result.get_boolean());
+    }
+  }
+  else {
+	  // The zone hint is the last leaf node which terminated a search.  If
+	  // we need to drill down, check this leaf node first.  (Because this function
+	  // is often repeatedly called inside a line search with almost identical 
+	  // values from iteration to iteration.)
+// checking to see if zone hint is causing problems --- uncomment   TODO TODO   TODO 
+	/*  if (zone_hint != NULL) {
+		  if (zone_hint->space_interval.is_on(x,y,z)) {
+			return(zone_hint->eval_at_point(x,y,z));
+		  }
+		  else {
+			zone_hint = NULL;
+		  }
+	  }
+	  else {
+	  }*/
+	  return(children[space_interval.get_zone(x,y,z)]->eval_at_point(x, y, z));
+  }
+}
+
+
+
 // Evaluate an expression at TWO points (assumed to be very close together)
 // and find a clause of the expression which is different between the points.
 // If all clauses are identical, returns -1.  
@@ -468,6 +512,13 @@ int octree_t::eval_at_center() {
 	}
 }
 
+void octree_t::create_cache(int lvl) {
+		int size = 4*(1 << lvl);   // do in 2 x 2 x 2 blocks
+
+	expression->mark_dependence();
+	expression->create_cache(size);
+
+}
 
 // Create a populated trimesh for the octree, using the 
 // octree traversal method, rather than the old layer-by-layer
@@ -485,8 +536,17 @@ void octree_t::trimesh(trimesh_t **trimesh) {
 	int y = -size/2;
 	int z = -size/2;
 	float stepsize = 2.0f / (float)size;
+	int cache_offset = size/2;
 
-	trimesh_core(trimesh, &cube_surface, x, y, z, size, stepsize);
+	// Create the expression caches
+	// Walk the expression and find the highest points
+	// that are dependent only on one variable.  For each, create
+	// an array of interval_t's and put a pointer to it.
+	
+
+
+	// DO the evaluation
+	trimesh_core(trimesh, &cube_surface, x, y, z, size, stepsize, cache_offset);
 	// Delete final cube surface data structure
 	delete cube_surface;
 	(*trimesh)->octree = this;
@@ -494,7 +554,7 @@ void octree_t::trimesh(trimesh_t **trimesh) {
 
 	// DEBUG TRIPWIRE TODO REMOVE
 	// Make sure all triangles have a full set of neighbors
-	(*trimesh)->check_neighbors();
+	//(*trimesh)->check_neighbors();
 	
 
 
@@ -593,6 +653,13 @@ inline void knit_faces(int l, int r, int lx, int ly, int lz, int rx, int ry, int
   vertex_t *lvp = cube_surfaces[l]->get_vertex(lx, ly, lz, 0, 0, 0);
   vertex_t *rvp = cube_surfaces[r]->get_vertex(rx, ry, rz, 0, 0, 0);
         
+ /* if ((lvp == (vertex_t*)0x14bd0d0) || (lvp == (vertex_t*)0x14bcf20) ||
+	  (rvp == (vertex_t*)0x14bd0d0) || (rvp == (vertex_t*)0x14bcf20)) {
+		  cout << "touching it!";
+  }*/
+
+  
+
   if (lvp != rvp) {
     
     if ((lvp == NULL) && (rvp != NULL)) {
@@ -603,6 +670,11 @@ inline void knit_faces(int l, int r, int lx, int ly, int lz, int rx, int ry, int
     }
     else {
       // Vertex collision needing rectification
+      // DEBUG TRIPWIRE
+	//	if ((rvp->x != lvp->x) || (rvp->y != lvp->y) || (rvp->z != lvp->z)) {
+	//		cout << "overwriting wrong vertex.\n";
+	//	}
+
       trimesh->replace_vertex(rvp, lvp);  // old, new
       cube_surfaces[r]->set_vertex(lvp, rx, ry,rz, 0, 0, 0);   
     }
@@ -767,13 +839,13 @@ inline void build_faces(trimesh_t *trimesh, cube_surface_t **cube_surfaces, int 
 		knit_faces(7,6,0,0,lz, m, 0, lz,trimesh, cube_surfaces);
 	}
 	
-	//+X
+	//-X
 	for (lx=0; lx<=s; lx++) {
 		knit_faces(0,4,lx,m,0, lx, 0,0,trimesh, cube_surfaces);
 		knit_faces(4,6,lx,0,0, lx, 0,m ,trimesh, cube_surfaces);
 		knit_faces(6,2,lx,0,m, lx, m,m,trimesh, cube_surfaces);
 	}
-	//-X
+	//+X
 	for (lx=0; lx<=s; lx++) {
 		knit_faces(1,5,lx,m,0, lx, 0,0,trimesh, cube_surfaces);
 		knit_faces(5,7,lx,0,0, lx, 0,m,trimesh, cube_surfaces );
@@ -841,18 +913,18 @@ inline void leaf_build_face(trimesh_t *trimesh, char *data, vector_t *points, ve
 
 				// TODO REMOVE
 				// Debug tripwire --- check validity of points data
-				float fx2 = ((float)(x+lx) + 0.5f) * stepsize;
-				float fy2 = ((float)(y+ly) + 0.5f)* stepsize;
-				float fz2 = ((float)(z+lz) + 0.5f) * stepsize;
-				fx = points[ldi].x;
-				fy = points[ldi].y;
-				fz = points[ldi].z;
+			//	float fx2 = ((float)(x+lx) + 0.5f) * stepsize;
+			//	float fy2 = ((float)(y+ly) + 0.5f)* stepsize;
+			//	float fz2 = ((float)(z+lz) + 0.5f) * stepsize;
+			//	fx = points[ldi].x;
+			//	fy = points[ldi].y;
+			//	fz = points[ldi].z;
 
 				
 				
-				if (((fx-fx2)*(fx-fx2) + (fy-fy2)*(fy-fy2) + (fz-fz2)*(fz-fz2)) > 0.0001) {
-					cout << "Points do not match!\n";
-				}
+			//	if (((fx-fx2)*(fx-fx2) + (fy-fy2)*(fy-fy2) + (fz-fz2)*(fz-fz2)) > 0.0001) {
+			//		cout << "Points do not match!\n";
+			//	}
 
 
 
@@ -886,7 +958,7 @@ inline void leaf_build_face(trimesh_t *trimesh, char *data, vector_t *points, ve
 }
 
 
-void octree_t::fill_leaf(trimesh_t *trimesh, cube_surface_t *cube_surface, int x, int y, int z, int size, float stepsize) {
+void octree_t::fill_leaf(trimesh_t *trimesh, cube_surface_t *cube_surface, int x, int y, int z, int size, float stepsize, int cache_offset) {
 
 	// TODO: perhaps the octree class could have a scratchpad for these constant-size-per-octree
 	// arrays instead of dynamically allocating them each time  like this
@@ -927,7 +999,7 @@ void octree_t::fill_leaf(trimesh_t *trimesh, cube_surface_t *cube_surface, int x
 			fy = ((float)ly + 0.5f)*stepsize;
 			for (lx=x; lx<(x+size); lx++) {
 				fx = ((float)lx + 0.5f)*stepsize;
-				data[ind] = this->eval_at_point(fx,fy,fz);
+				data[ind] = this->cached_eval_at_point(fx,fy,fz,lx,ly,lz,cache_offset);
 				points[ind].set(fx,fy,fz);
 				ind++;
 			}
@@ -1032,7 +1104,7 @@ void octree_t::fill_leaf(trimesh_t *trimesh, cube_surface_t *cube_surface, int x
 // x,y,z are the integer coordinates of the lower-left corner of this octree segment
 // size is the side length in voxels of this octree segment
 // stepsize is the voxel pitch
-void octree_t::trimesh_core(trimesh_t **my_trimesh, cube_surface_t **cube_surface, int x, int y, int z, int size, float stepsize) {
+void octree_t::trimesh_core(trimesh_t **my_trimesh, cube_surface_t **cube_surface, int x, int y, int z, int size, float stepsize, int cache_offset) {
 	
 
    cube_surface_t *cube_surfaces[8];
@@ -1059,7 +1131,7 @@ void octree_t::trimesh_core(trimesh_t **my_trimesh, cube_surface_t **cube_surfac
 	   //  cout << "Leaf expression is : " << *expression << "\n";
 
 	     *cube_surface = new cube_surface_t(0,x,y,z,size, stepsize); 
-		  this->fill_leaf(*my_trimesh, *cube_surface,x,y,z, size,stepsize);
+		  this->fill_leaf(*my_trimesh, *cube_surface,x,y,z, size,stepsize, cache_offset);
 	   }
    }
    else {
@@ -1068,28 +1140,28 @@ void octree_t::trimesh_core(trimesh_t **my_trimesh, cube_surface_t **cube_surfac
 	   // Merge trimeshes together
 	   int halfsize = size/2;
 	   	   
-		   children[2]->trimesh_core(&temp_trimesh, &(cube_surfaces[0]), x, y, z+halfsize, halfsize, stepsize);
+		   children[2]->trimesh_core(&temp_trimesh, &(cube_surfaces[0]), x, y, z+halfsize, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
-	   	   children[3]->trimesh_core(&temp_trimesh, &(cube_surfaces[1]), x+halfsize, y, z+halfsize, halfsize, stepsize);
+	   	   children[3]->trimesh_core(&temp_trimesh, &(cube_surfaces[1]), x+halfsize, y, z+halfsize, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
-	   	   children[0]->trimesh_core(&temp_trimesh, &(cube_surfaces[2]), x, y, z, halfsize, stepsize);
+	   	   children[0]->trimesh_core(&temp_trimesh, &(cube_surfaces[2]), x, y, z, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
-	   	   children[1]->trimesh_core(&temp_trimesh, &(cube_surfaces[3]), x+halfsize, y, z, halfsize, stepsize);
+	   	   children[1]->trimesh_core(&temp_trimesh, &(cube_surfaces[3]), x+halfsize, y, z, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
-	   	   children[6]->trimesh_core(&temp_trimesh, &(cube_surfaces[4]), x, y+halfsize, z+halfsize, halfsize, stepsize);
+	   	   children[6]->trimesh_core(&temp_trimesh, &(cube_surfaces[4]), x, y+halfsize, z+halfsize, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
-	   	   children[7]->trimesh_core(&temp_trimesh, &(cube_surfaces[5]), x+halfsize, y+halfsize, z+halfsize, halfsize, stepsize);
+	   	   children[7]->trimesh_core(&temp_trimesh, &(cube_surfaces[5]), x+halfsize, y+halfsize, z+halfsize, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
-	   	   children[4]->trimesh_core(&temp_trimesh, &(cube_surfaces[6]), x, y+halfsize, z, halfsize, stepsize);
+	   	   children[4]->trimesh_core(&temp_trimesh, &(cube_surfaces[6]), x, y+halfsize, z, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
-	   	   children[5]->trimesh_core(&temp_trimesh, &(cube_surfaces[7]), x+halfsize, y+halfsize, z, halfsize, stepsize);
+	   	   children[5]->trimesh_core(&temp_trimesh, &(cube_surfaces[7]), x+halfsize, y+halfsize, z, halfsize, stepsize, cache_offset);
 		   (*my_trimesh)->merge(*temp_trimesh);
 		   delete temp_trimesh;
 	   

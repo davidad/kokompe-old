@@ -56,6 +56,8 @@ trimesh_t::~trimesh_t() {
   this->depopulate();
 }
 
+/*
+
 // Return the standardized number of an edge given the number
 // of its verticies
 inline int get_edge_number(int start_vertex, int end_vertex) {
@@ -91,7 +93,7 @@ inline int opposite_vertex_from_edge (int edge) {
 inline int next_vertex(int vertex) {
 	return((vertex + 1)%3);
 }
-
+*/
 
 
 void trimesh_t::add_vertex(vertex_t *vertex, vector_t *inside_point, vector_t *outside_point) {
@@ -102,14 +104,26 @@ void trimesh_t::add_vertex(vertex_t *vertex, vector_t *inside_point, vector_t *o
 
 void trimesh_t::add_triangle(vertex_t *v1, vertex_t *v2, vertex_t *v3, vector_t normal) {
 
+//	int your_start_vertex_copy;
 
-
-	// Used to located edge neighbors
-	vertex_t *start_vertex, *end_vertex;
-	list<trimesh_node_t*>::iterator triangle_iterator;
-	int my_edge, your_edge, your_start_vertex, your_end_vertex;
+	// Used to locate edge neighbors
+//	vertex_t *start_vertex, *end_vertex;
+//	list<trimesh_node_t*>::iterator triangle_iterator;
+//	int my_edge, your_edge, your_start_vertex, your_end_vertex;
 		
 	trimesh_node_t *node = new trimesh_node_t();
+
+	/*if ((node == (trimesh_node_t*)0x014bda10) ||  (node == (trimesh_node_t*)0x014bfb50) || (node == (trimesh_node_t*)0x014bd408)) {
+		cout << "creating suspect vertex.\n";
+		cout << node << ":\n";
+		cout << v1 << *v1 << "\n";
+		cout << v2 << *v2 << "\n";
+		cout << v3 << *v3 << "\n";
+		
+
+	}*/
+
+
 		// Populate verticies
 		node->verticies[0] = v1;
 		node->verticies[1] = v2;
@@ -127,7 +141,7 @@ void trimesh_t::add_triangle(vertex_t *v1, vertex_t *v2, vertex_t *v3, vector_t 
 		// For each vertex that starts an edge, look at the list of triangles that
 		// use this vertex and see if a different triangle shares the other vertex on 
 		// that edge.  If so they are neighbors --- mark as such in both
-		for (my_edge=0; my_edge<3; my_edge++) {
+	/*	for (my_edge=0; my_edge<3; my_edge++) {
 			start_vertex = node->verticies[my_edge];
 			end_vertex = node->verticies[(my_edge+1)%3];
 
@@ -147,18 +161,92 @@ void trimesh_t::add_triangle(vertex_t *v1, vertex_t *v2, vertex_t *v3, vector_t 
 							// Mark myself as an edge in their list
 							// First find their number for the start vertex
 							for (your_start_vertex=0; your_start_vertex<3; your_start_vertex++) {
-								if ((*triangle_iterator)->verticies[your_start_vertex] == start_vertex)
+								if ((*triangle_iterator)->verticies[your_start_vertex] == start_vertex) {
+									your_start_vertex_copy = your_start_vertex;
 									break;
+								}
 							}
+							// CAN WE ASSUME THAT YOUR_START_VERTEX STAYS VALID OUTSIDE THE FOR????????????????????????? TODO
 							// Convert the pair of vertex numbers to an edge number
-							your_edge = get_edge_number(your_start_vertex, your_end_vertex);
+							your_edge = get_edge_number(your_start_vertex_copy, your_end_vertex);
 							// Write into their data structure
 							(*triangle_iterator)->neighbors[your_edge] = node;
 						}
 					}
 				}
 			}	
+		}*/
+
+		// for each vertex of t1, v1..v3
+		//   for each vertex neighbor on v_n
+		//     check to see whether it shares another vertex (not v_n) with v1
+		//     if so, they are neighbors
+		//     mark
+		//     carry all the way through, and halt if a second neighbor is found
+
+
+								// mark on neighbor
+						//		your_edge = get_edge_number(
+
+
+					//	}
+
+		/*int parity;
+
+		for (int v1=0; v1<3; v1++) {
+			start_vertex = node->verticies[v1];
+			for(triangle_iterator = start_vertex->triangle_list.begin(); triangle_iterator != start_vertex->triangle_list.end(); triangle_iterator++) {
+
+				if ((*triangle_iterator) != node) {
+				// I am not my own neighbor!
+
+				for (int v2=0;v2<3; v2++) {
+
+					for (int v3=0; v3<3; v3++) {
+
+						if (((*triangle_iterator)->verticies[v2] == node->verticies[v3]) &&
+							((*triangle_iterator)->verticies[v2] != start_vertex)) {
+
+							// Hooray!  We've found a triangle sharing two verticies --- an edge neighbor
+								my_edge = get_edge_number(v1,v3);
+								parity = 0;
+								// mark on node
+								if (node->neighbors[my_edge] == NULL) {
+									node->neighbors[my_edge] = (*triangle_iterator);
+									parity = 1;
+								}
+								else if (node->neighbors[my_edge] != (*triangle_iterator)) {
+									cout << "about to overwrite neighbor array!  trouble!";
+								}
+
+								// Find original vertex on this triangle
+								for (int v4=0; v4<3; v4++) {
+									if ((*triangle_iterator)->verticies[v4] == start_vertex) {
+
+										// found the other vertex
+										your_edge = get_edge_number(v2,v4);
+
+										if ((*triangle_iterator)->neighbors[your_edge] == NULL) {
+											(*triangle_iterator)->neighbors[your_edge] = node;
+											parity = 0;
+										}
+										else {
+											if ((*triangle_iterator)->neighbors[your_edge] != node) {
+												cout << "about to overwrite neighbor array on remote.  trouble!";
+											}
+										}
+									}
+								}
+								if (parity == 1) {
+									cout << "wrote neighbor without corresponding neighbor.\n";
+								}
+						}
+					}
+				}
+			}
 		}
+		}*/
+		
 
 		// Assign the normal 
 		//node->normal = normal;
@@ -194,7 +282,7 @@ void trimesh_t::replace_vertex(vertex_t *oldv, vertex_t *newv) {
 			// Zero out this vertex's triangle list so we know that we can discard it later
 			oldv->triangle_list.clear();
 
-
+/*
 			// Now check to see if any of the triangles on this vertex's triangle list are in fact
 			// (new) edge neighbors of each other, and if so, mark them as such
 
@@ -236,6 +324,19 @@ void trimesh_t::replace_vertex(vertex_t *oldv, vertex_t *newv) {
 											(*t1)->neighbors[edgeno] = *t2;
 										else if ((*t1)->neighbors[edgeno] != (*t2)) {
 											cout << "Inconsistent edge numbers found!";
+											cout << (*t1) << "\n";
+											cout << *(*t1)->verticies[0] << "\n";
+											cout << *(*t1)->verticies[1] << "\n";
+											cout << *(*t1)->verticies[2] << "\n";
+
+											cout << (*t2) << "\n";
+											cout << *(*t2)->verticies[0] << "\n";
+											cout << *(*t2)->verticies[1] << "\n";
+											cout << *(*t2)->verticies[2] << "\n";
+
+
+
+
 										}
 
 
@@ -246,11 +347,11 @@ void trimesh_t::replace_vertex(vertex_t *oldv, vertex_t *newv) {
 						}
 					}
 				}
-			}
+			}*/
 
 }
 
-
+/*
 void trimesh_t::check_neighbors() {
 	list<trimesh_node_t*>::iterator triangle_iterator;
 		list<vertex_t*>::iterator vertex_iterator;
@@ -283,7 +384,7 @@ void trimesh_t::check_neighbors() {
 
 
 }
-
+*/
 
 
 void trimesh_t::add_voxel_center(vector_t *v) {
@@ -330,7 +431,7 @@ void trimesh_t::initialize_tables() {
 	}		
 }
 
-void trimesh_t::fill_voxels(interval_t X, interval_t Y, int index) {
+/*void trimesh_t::fill_voxels(interval_t X, interval_t Y, int index) {
 	// Z interval increments on each call
 	interval_t Z;
 	Z.set_real_interval(zhorizon, zhorizon + zstep);
@@ -360,8 +461,8 @@ void trimesh_t::fill_voxels(interval_t X, interval_t Y, int index) {
 
 
 
-}
-
+//}
+/*
 // Populate a trimesh using an evaluated octree on a given space interval,
 // with a rectangular lattice using an underlying voxel grid with
 // nx, ny, and nz elements in each direction
@@ -424,14 +525,14 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 				// GIGO
 				// Lets see if the voxel table is correct
 
-				/*x = voxel_centers_from_evaluator[1][index].x;
-				y = voxel_centers_from_evaluator[1][index].y;
-				z = voxel_centers_from_evaluator[1][index].z;
+				///*x = voxel_centers_from_evaluator[1][index].x;
+				//y = voxel_centers_from_evaluator[1][index].y;
+				//z = voxel_centers_from_evaluator[1][index].z;
 
 
-				if (voxel_table[1][index] != octree->eval_at_point(x,y,z)) {
-					cout << "Voxel table in error.";
-				}*/
+				//if (voxel_table[1][index] != octree->eval_at_point(x,y,z)) {
+				//	cout << "Voxel table in error.";
+				//}
 
 				// If true here true here
 				if (voxel_table[1][index] == 1) {
@@ -502,6 +603,8 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 	}
 }
 
+*/
+
 // Depopulate a trimesh so it can be used again
 void trimesh_t::depopulate() {
   list<trimesh_node_t*>::iterator triangle_iterator;
@@ -555,7 +658,7 @@ void trimesh_t::depopulate() {
 
 
 
-
+/*
 // Builds two triangles on a rectangular face dividing a voxel inside the
 // object from a voxel outside the object
 void trimesh_t::triangulate_face(int in_slice, int in_index,
@@ -794,7 +897,7 @@ void trimesh_t::triangulate_face(int in_slice, int in_index,
 		num_triangles++;
 	}
 }
-
+*/
 
 // Refines a trimesh so that the verticies lie more exactly on the object and the
 // normals are correct
@@ -846,7 +949,7 @@ void trimesh_t::refine() {
 		vertex_outside_point_iterator++;
 	}
 }
-
+/*
 int ratio_test(vertex_t verticies[3], int* bad_vertex) {
 	vector_t cross_product;
 	float min_ratio = 0.2f;  /// woah!!!
@@ -875,7 +978,7 @@ int ratio_test(vertex_t verticies[3], int* bad_vertex) {
 	else
 		return(0);
 }
-
+*/
 
 
 
@@ -913,7 +1016,7 @@ void trimesh_t::recalculate_normals() {
 	}
 }
 
-
+/*
 void trimesh_t::mark_triangles_needing_division() {
 	list<vertex_t*>::iterator vertex_iterator;
 	list<trimesh_node_t*>::iterator inner_triangle_iterator;
@@ -976,7 +1079,7 @@ void trimesh_t::mark_triangles_needing_division() {
 	}
 	// dirty triangles plot a different color so I can see if this is working
 }
-
+*/
 
 void trimesh_t::mark_triangles_spanning_surfaces() {
 	list<vertex_t*>::iterator vertex_iterator;
