@@ -159,11 +159,11 @@ cout << "marking clauses.\n";
   cout << "Evaluating Expression on Octree... ";
   start_clock();
 
-  octree.create_cache(6);
+  octree.create_cache(5);
 
 
 
-  octree.eval(6);
+  octree.eval(5);
   end_clock();
 
   //TESTING OF TOOL_PATH generation
@@ -252,6 +252,21 @@ cout << "marking clauses.\n";
 	cout << "writing STL file...\n";
 	trimesh->write_stl("teapot.stl");
    //cout << trimesh;
+
+	
+	char *kpf;
+	int kpf_length;
+
+   cerr << "Writing KPF.\n";
+     start_clock();
+   trimesh->fill_kpf(&kpf, &kpf_length);
+     end_clock();
+
+   // Write KPF data to stdout
+   //cout.write(kpf, stl_length);
+   delete []kpf;
+
+
 
 #ifdef WIN32
 	cout << "showing graphics...\n";

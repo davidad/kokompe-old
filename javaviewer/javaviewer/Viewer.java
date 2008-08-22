@@ -14,7 +14,7 @@ import java.util.ListIterator;
 import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
-
+import java.util.zip.*;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -46,7 +46,7 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		defaultURL = args[0];
 	}
 	else {
-		defaultURL = "http://phmgrid1.media.mit.edu/kokompe/STL/teapot.stl";
+		defaultURL = "http://cluster.media.mit.edu/kokompe/STL/teapot.stl";
 	}
 
 	frame = new Frame(appname);
@@ -119,6 +119,21 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 
   }
 
+  private int readIntLittleEndianFromBuffer(byte buffer[], int startIndex) {
+		 // 4 bytes
+	   int accum = 0;
+	   int index = startIndex;
+	   for ( int shiftBy=0; shiftBy<32; shiftBy+=8 )
+	      {
+	      accum |= ( buffer[index] & 0xff ) << shiftBy;
+	      index++;
+	      }
+	   return accum;
+	  
+	  
+  }
+  
+  
   public void init(GLAutoDrawable drawable) {
 
 		// ************** SET UP TO DRAW WINDOW
@@ -205,10 +220,13 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
  	filename = filename.toLowerCase();
  	if (filename.endsWith("kaf"))
  		assemblyMode = true;
- 	else if (filename.endsWith("stl"))
+ 	else if ((filename.endsWith("stl")) ||
+ 			 (filename.endsWith("kpf")) ||
+ 			 (filename.endsWith("kpf.gz")) ||
+ 			 (filename.endsWith("stl.gz")))
  		assemblyMode = false;
  	else {
- 		System.err.println("Unknown file extension, must be kaf or stl");
+ 		System.err.println("Unknown file extension, must be kaf, stl, kpf, stl.gz, or kpf.gz");
  		System.exit(0);
  	}
 
@@ -265,7 +283,7 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
     				filestream3 = thisEntry.partURL.openConnection();
     				filestream3.connect();
     				if (filestream3.getLastModified() > thisEntry.urlLastModified) {
-    					progressBar.setValue(0);
+   				        progressBar.setValue(0);
     					progressBar.setIndeterminate(true);
     					progressBar.setString("Rendering Model...");
     					if (filestream3.getContentLength() >= 84) {
@@ -297,9 +315,38 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		  }
 	  }
   }
+  
+  float[] computeFacetNormal(float[] vertexArray, int startIndex) {
+	  float[] normalout = new float[3];
+	  
+	  Vector3[] verticies = new Vector3[3];
+	  
+	  Vector3 normal;
+	    
+	  int index = startIndex;
+	  for (int i=0; i<3; i++) {
+		  verticies[i] = new Vector3(vertexArray[index], vertexArray[index+1], vertexArray[index+2]);
+		  index += 3;
+	  }
+	  
+	  // Compute facet normal by cross product
+	  // TODO: can openGL do this automatically with hardware acceleration?
+	  normal =  Vector3.cross(Vector3.sub(verticies[1],verticies[0]), Vector3.sub(verticies[2], verticies[0]));
+      normal.normalize();
+	  
+	  normalout[0] = normal.x;
+	  normalout[1] = normal.y;
+	  normalout[2] = normal.z;
+	  return(normalout);
+  
+  }
+
+  
+  
 
   public boolean updateModel(GL gl, mapentry thisEntry) {
 	  int numStlFacets = 0;
+	  int bytesToRead = 0;
 	  byte [] facetdata = new byte[0];
 
 	  try {
@@ -314,39 +361,73 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 			thisEntry.urlLastModified = filestream.getLastModified();
 			int urlContentLength = filestream.getContentLength();
 
-			if (urlContentLength < 84) {
+	
+			// Check to see if enough of the file is present
+			// to read its length
+
+			int minLength;
+			if (thisEntry.isKPF)
+				minLength = 4;
+			    
+			else 
+			    minLength = 84;
+			
+			// Not strictly correct for gzipped files but probably OK
+			if (urlContentLength < minLength) {
 				// file is not finished writing.  return false,
 				// which will result in a retry in a few moments
 				return(false);
 			}
 
-			DataInputStream in = new DataInputStream(filestream.getInputStream());
+			DataInputStream in;
+			if (thisEntry.isCompressed)
+				in = new DataInputStream(new GZIPInputStream(filestream.getInputStream()));
+			else
+				in = new DataInputStream(filestream.getInputStream());
 
-			// Skip past the header
-			byte[] header;
-			header = new byte[80];
-			in.read(header, 0, 80);
+			
+			if (!thisEntry.isKPF) {
+				// Skip past the STL header
+				System.err.println("Skipping STL header.");  // TODO remove
+				byte[] header;
+				header = new byte[80];
+				in.read(header, 0, 80);
+			}		
 
-			/*for(int m=0;m<80;m++) {
-				Byte firstchar = new Byte(header[m]);
-				System.err.print(firstchar.toString() + " ");
+			if (thisEntry.isKPF) {
+				bytesToRead = readIntLittleEndian(in) - 8;
+				numStlFacets = readIntLittleEndian(in);
+				System.err.println("KPF file in URL contains " + numStlFacets + " facets in " + bytesToRead + " uncompressed bytes.");
 			}
-			System.err.println();*/
+			else {
+				
+				// Read in the number of facets
+				numStlFacets = 0;
+				numStlFacets = readIntLittleEndian(in);
+				System.err.println("STL file in URL contains " + numStlFacets + " facets.");
 
-			// Read in the number of facets
-			numStlFacets = 0;
-			numStlFacets = readIntLittleEndian(in);
-			System.err.println("STL file in URL contains " + numStlFacets + " facets.");
-
-			// Read the actual facet data
-			//	 facet data is 12 floats plus a short (4*12 + 2 = 50 bytes/facet)
-
-			int bytesToRead = numStlFacets*50;
-
-			if (urlContentLength < (bytesToRead + 84)) {
-				// file is not yet finished writing.
-				// return false, which will result in trying again in a moment
-				return(false);
+				//	 facet data is 12 floats plus a short (4*12 + 2 = 50 bytes/facet)
+				bytesToRead = numStlFacets*50;
+			}
+			
+			
+			int totalFileLength;
+			if (thisEntry.isKPF) 
+				totalFileLength = bytesToRead + 8;
+			else
+				totalFileLength = bytesToRead + 84;
+			
+			// TODO: How can we determine if a GZIP file is finished writing?
+			// Workaround for now is that transfer will crash and restart on
+			// premature EOF
+			if (!thisEntry.isCompressed) {
+					// file is not yet finished writing.
+				if (urlContentLength < totalFileLength) {
+					// return false, which will result in trying again in a moment
+					
+					System.err.println("urlContentLength: " + urlContentLength + "totalFileLength:" + totalFileLength);		
+					return(false);
+				}
 			}
 
 			// OK, we have a valid file!!! set up progress bar
@@ -405,11 +486,93 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		    int vertexCtr = 0;
 		    int coordCtr = 0;
 
-		    for (int facet = 0; facet < numStlFacets; facet++) {
+		    if (thisEntry.isKPF) {
+		    	// KPF parsing
+		    	
+		    	byteCtr = 0;
+		    	int i,j;
+		    	
+	    		float[] vertexTable = new float[65536*3];
+	    		int[] triangleVerticies = new int[3];
+		    	int tv;
+	    		
+		    	while(byteCtr < bytesToRead) {
+		    		
+		    		// Read the next block
+	
+		    		int numVerticies = readIntLittleEndianFromBuffer(facetdata, byteCtr);
+		    		byteCtr += 4;
+		    		int numTriangles = readIntLittleEndianFromBuffer(facetdata, byteCtr);
+		    		byteCtr += 4;
+	
+		    		System.err.println("Reading block with " + numVerticies + "verticies and " + numTriangles + " triangles.");
+		    		
+		    		// Read the verticies
+		    		int vertexTableIndex = 0;
+		    		for (i=0; i<numVerticies; i++) {	
+			    		// Get the 3 floats defining the vertex
+			    		for (int vertexFloat = 0; vertexFloat < 3; vertexFloat++) {
+			    			int accum = 0;
+			    			for ( int shiftBy=0; shiftBy<32; shiftBy+=8 ) {
+			    				accum |= ( facetdata[byteCtr] & 0xff ) << shiftBy;
+			    				byteCtr++;
+			    			}
+			    			vertexTable[vertexTableIndex] = (float)Float.intBitsToFloat( accum );
+			    			
+			    			// find bounding box and store
+					    	  if (vertexTable[vertexTableIndex] > thisEntry.maxBox[vertexFloat])
+					    		  thisEntry.maxBox[vertexFloat] = vertexTable[vertexTableIndex];
+					    	  if (vertexTable[vertexTableIndex] < thisEntry.minBox[vertexFloat])
+					    		  thisEntry.minBox[vertexFloat] = vertexTable[vertexTableIndex];
+					    	  vertexTableIndex++;
+			    		}	
+		    		}
+		    		
+		    		// Read the triangles and write out to openGL data structure
+		    		
+		    		for (i=0; i<numTriangles; i++) {
+		    			// Get the three 16-bit ints defining the triangles
+		    			for (j=0; j<3; j++) {
+			    			int accum = 0;
+		    				for ( int shiftBy=0; shiftBy<16; shiftBy+=8 ) {
+			    				accum |= ( facetdata[byteCtr] & 0xff ) << shiftBy;
+			    				byteCtr++;
+			    			}
+		    				triangleVerticies[j] = accum;
+		    			}
+		    			
+		    			// Fill the vertex array for openGL
+		    			for (tv=0; tv<3; tv++) {
+		    				int vertexIndex = 3*triangleVerticies[tv];
+		    				for (j=0; j<3; j++) {
+		    					vertexArray[vertexCtr] = vertexTable[vertexIndex+j];
+		    					vertexCtr++;
+		    				}
+		    			
+		    			}
+		    			
+		    			// Compute the facet normal
+		    			float facetNormal[] = computeFacetNormal(vertexArray, vertexCtr-9);
+		    			
+		    			// Replicate the facet normal 3 times into the normal array
+		    			for(tv=0; tv<3; tv++) {
+		    				for (j=0; j<3; j++) {
+		    					normalArray[normalCtr] = facetNormal[j];
+		    					normalCtr++;
+		    				}
+		    			}
+		    		}
+		    	}
+		    	System.err.println("Done Parsing KPF.");		    		
+		    }
+		    else {
+		    	// STL parsing
+		    	
+		    	for (int facet = 0; facet < numStlFacets; facet++) {
 
-		      // Get the 3 floats defining the facet normal
-		      for (int normalFloat = 0; normalFloat < 3; normalFloat++) {
-		    	  int accum = 0;
+		    		// Get the 3 floats defining the facet normal
+		    		for (int normalFloat = 0; normalFloat < 3; normalFloat++) {
+		    			int accum = 0;
 		    	  for ( int shiftBy=0; shiftBy<32; shiftBy+=8 ) {
 		    		  accum |= ( facetdata[byteCtr] & 0xff ) << shiftBy;
 		    		  byteCtr++;
@@ -443,8 +606,13 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 
 		      // Skip attribute byte count
 		      byteCtr += 2;
-		    }
+		    	}
+		    	
+		    	System.err.println("Done parsing STL.");
+		    	
 
+		    }
+		    	
 		    // ************** WRAP FLOAT ARRAYS IN FLOATBUFFER OBJECTS FOR JOGL
 
 		    ByteBuffer underlyingVertexBuffer = ByteBuffer.allocateDirect(numStlFacets*9*4).order(ByteOrder.nativeOrder());
@@ -457,9 +625,8 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		    normalBuffer.put(normalArray, 0, numStlFacets*9);
 		    normalBuffer.position(0);
 
-
 		    // ************ CREATE A DISPLAY LIST CONTAINING THE STL OBJECT *********
-
+		    
 		    gl.glNewList(thisEntry.displayList, GL.GL_COMPILE);
 
 		    // Create vertex arrays
@@ -551,6 +718,17 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 		  thisEntry.urlLastModified = 0;
 		  thisEntry.newData = true;
 		  thisEntry.displayList = gl.glGenLists(1); // make a new display list
+		  String lowerURL = urltext.toLowerCase();
+		  if ((lowerURL.endsWith("kpf")) ||
+			  (lowerURL.endsWith("kpf.gz")))
+		      thisEntry.isKPF = true;
+		  else
+		      thisEntry.isKPF = false;
+		  if (lowerURL.endsWith("gz"))
+			  thisEntry.isCompressed = true;
+		  else
+			  thisEntry.isCompressed = false;
+		  
 		  urlMap.put(thisPart.partURL, thisEntry);
 
 	  }
@@ -585,7 +763,8 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 
 				  // Read part URL string
 				  thisPart.partURL = tokenizer.nextToken();
-				  // Read modelview matrix
+
+		   		  // Read modelview matrix
 				  Float thisElement;
 				  int i;
 				  for (i=0; i<16; i++) {
@@ -610,6 +789,17 @@ public class Viewer implements GLEventListener, MouseListener, MouseMotionListen
 				  if (urlMap.containsKey(thisPart.partURL) == false) {
 					  mapentry thisEntry = new mapentry();
 					  thisEntry.partURL = new URL(thisPart.partURL);
+
+					  String lowerURL = thisPart.partURL.toLowerCase();
+		  if (lowerURL.endsWith("kcf"))
+		      thisEntry.isKPF = true;
+		  else
+		      thisEntry.isKPF = false;
+		  if (lowerURL.endsWith("gz"))
+			  thisEntry.isCompressed = true;
+		  else
+			  thisEntry.isCompressed = false;
+
 					  thisEntry.urlLastModified = 0;
 					  thisEntry.newData = true; // is this right?
 					  thisEntry.displayList = gl.glGenLists(1); // make a new display list

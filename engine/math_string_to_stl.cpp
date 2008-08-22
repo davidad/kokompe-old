@@ -65,7 +65,23 @@ int main(int argc, char** argv) {
   float min_feature;
   float xmin, xmax, ymin, ymax, zmin, zmax;
   int renderlevel = 2;
-  
+  int writeSTL = 0;
+
+  // Figure out STL vs KPF file generation from the invoked filename
+  string name;
+  name.append(argv[0]);
+  string extension = name.substr(name.size()-3, name.size()-1);
+  if (!extension.compare("stl")) {
+    writeSTL = 1;
+  }
+  else if (!extension.compare("kpf")) {
+    writeSTL = 0;
+  }
+  else {
+    cerr << "This program must be invoked with the name math_string_to_stl or math_string_to_kpf." << endl;
+    exit(239);
+  }
+
   // Read in command line arguments
   if (argc <= 7) {
     cerr << "Wrong number of arguments, got " << argc-1 << " expecting 7 or 8.\n";
@@ -186,33 +202,39 @@ int main(int argc, char** argv) {
       trimesh->move_veticies_onto_edges_and_corners_using_normals();
     }  
 
-    cerr << "Recalculating normals...\n";
-    trimesh->recalculate_normals();
+    if (writeSTL) {
+      // KPF files do not contain facet normals -- only STL
+      cerr << "Recalculating normals...\n";
+      trimesh->recalculate_normals();
+    }
   }
   
-
    char *stl;
    int stl_length;
    
-   // Fill STL data
+   // Fill STL or KPF data
    #ifdef WIN32
 	/* Change translation mode for stdout to BINARY */
 	_setmode( _fileno( stdout ), O_BINARY );
-	#endif
+   #endif
    
-   
-   cerr << "Writing STL.\n";
-   trimesh->fill_stl(&stl, &stl_length);
-   
-   // Write STL data to stdout
+   if (writeSTL) {
+     cerr << "Writing STL." << endl;
+     trimesh->fill_stl(&stl, &stl_length);
+   }
+   else {   
+     cerr << "Writing KPF.\n";
+     trimesh->fill_kpf(&stl, &stl_length);
+   }
+
+
+   // Write STL or KPF data to stdout
    cout.write(stl, stl_length);
    delete []stl;
 
    delete trimesh;
  
    octree.delete_cache();
-
-   cerr << "Done.\n";
 
   return(0);  
 }

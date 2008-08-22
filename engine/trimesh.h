@@ -115,8 +115,8 @@ public:
 	void depopulate();
 	// Write an 3D Systems Format Binary STL file from a triangulated mesh
 	void write_stl(string filename);
-	void write_3dm(string filename);
 	void fill_stl(char **buffer, int *length);
+	void fill_kpf(char **buffer, int *length);
 	void drawgl();
 	void remove_splinters();
 	void refine();

@@ -441,28 +441,15 @@ void trimesh_t::initialize_tables() {
 	// Evaluate single slice of voxel grid
 	octree->eval_on_grid(slice, nx, ny, 1, voxel_table[index],voxel_centers_from_evaluator[index]);
 
-	// Test code to evaluate using eval_on_grid instead to check
-	/*
-	x = X.get_lower();
-	y = Y.get_lower();
-	float xstep = (X.get_upper() - X.get_lower()) / (float)nx;
-	float ystep = (Y.get_upper() - Y.get_lower()) / (float)ny;
-	
-	
-	for (int xi=0; xi < nx; xi++) {
-		
-		y = Y.get_lower();
-		for (int yi=0; yi < ny; yi++) {
-			voxel_table[index][	
 
-		}
-	}*/
+	
+
 
 
 
 
 //}
-/*
+
 // Populate a trimesh using an evaluated octree on a given space interval,
 // with a rectangular lattice using an underlying voxel grid with
 // nx, ny, and nz elements in each direction
@@ -525,7 +512,7 @@ void trimesh_t::populate(octree_t* octree, space_interval_t* region, int nx, int
 				// GIGO
 				// Lets see if the voxel table is correct
 
-				///*x = voxel_centers_from_evaluator[1][index].x;
+				// / * x = voxel_centers_from_evaluator[1][index].x;
 				//y = voxel_centers_from_evaluator[1][index].y;
 				//z = voxel_centers_from_evaluator[1][index].z;
 
@@ -1853,6 +1840,153 @@ void trimesh_t::fill_stl(char **buffer, int *buffer_size) {
 
 }
 
+// used by fill KPF
+// write data block to char * array and free dynamic memory, clear lists
+void write_block(map<vertex_t*, int> &vertex_map, int map_entries, list<int*> &triangle_list, list<char*> &file_data_blocks, list<int> &file_data_block_lengths, int *data_bytes) {
+	int word_bytes = 4;            // 32 bit words for # of triangles and # of words
+	int float_bytes = 4;
+	int triangle_index_bytes = 2;
+	int triangle_entry_bytes = 3*triangle_index_bytes;  // 3 verticies to a triangle 
+	int vertex_entry_bytes = 3*float_bytes;  // 3 floats (X,Y,Z) per vertex
+    unsigned int num_triangles = (unsigned int)triangle_list.size();
+    unsigned int num_verticies = (unsigned int)map_entries;
+	map<vertex_t*,int>::iterator vertex_iterator;
+    list<int*>::iterator triangle_iterator;
+
+	int num_bytes = num_verticies*vertex_entry_bytes + num_triangles*triangle_entry_bytes + 2*word_bytes;
+	*data_bytes += num_bytes;
+	char *data = new char[num_bytes];
+	char *ptr = data;
+
+	// Write block header
+	// # verticies
+	memcpy(ptr, (char*)&num_verticies, word_bytes);
+	ptr += 4;
+    // # triangles
+	memcpy(ptr, (char*)&num_triangles, word_bytes);
+	ptr += 4;
+
+	// Write verticies (as 3 4-byte floats)
+	for(vertex_iterator = vertex_map.begin(); vertex_iterator != vertex_map.end(); vertex_iterator++) {
+		int offset = (*vertex_iterator).second;
+		memcpy(ptr+(offset*12), (char*)&((*vertex_iterator).first->x), float_bytes);
+		memcpy(ptr+(offset*12)+4, (char*)&((*vertex_iterator).first->y), float_bytes);
+		memcpy(ptr+(offset*12)+8, (char*)&((*vertex_iterator).first->z), float_bytes);
+	}
+	ptr += num_verticies*4*3;
+
+
+	// Write triangles
+    for (triangle_iterator = triangle_list.begin(); triangle_iterator != triangle_list.end(); triangle_iterator++) {
+		
+		for (int i=0; i<3; i++) {
+			unsigned short index = (unsigned short)(*triangle_iterator)[i];
+			memcpy(ptr, (unsigned short*)&index, triangle_index_bytes);
+			ptr+= triangle_index_bytes;
+		}
+		delete[] (*triangle_iterator);
+	}
+
+	// Store file data in list
+	file_data_blocks.push_back(data);
+	file_data_block_lengths.push_back(num_bytes);
+
+	// Clear arrays
+	vertex_map.clear();
+	triangle_list.clear();
+
+}
+
+
+// Creates a KPF (Kokompe Part File) from a trimesh
+// This is a compressed format optimized for sending trimeshes
+// over low-speed wide area network connections
+void trimesh_t::fill_kpf(char **buffer, int *buffer_size) {
+  list<trimesh_node_t*>::iterator triangle_iterator;
+  map<vertex_t*, int> vertex_map;
+  map<vertex_t*,int>::iterator mi[3];
+  int triangle_entries = 0;
+  unsigned int max_vertex_map_entries = 65536;   // start with 8-bit vertex codes
+  list<int*> triangle_list;
+  int* triangle;
+  list<char*> file_data_blocks;
+  list<char*>::iterator fb;
+  int data_bytes = 0;
+  trimesh_node_t *t;
+  list<int> file_data_block_lengths;
+  list<int>::iterator bl;
+
+
+  int map_index = 0;
+  
+ for (triangle_iterator = triangles.begin(); triangle_iterator != triangles.end(); triangle_iterator++) {
+	t = *triangle_iterator;
+
+	int success = 0;
+
+
+	while (success == 0) {
+		success = 1;
+		for(int i=0; i<3; i++) {
+		mi[i] = vertex_map.find(t->verticies[i]);
+		if (mi[i] == vertex_map.end()) {
+			// vertex is not in map
+			if (map_index < max_vertex_map_entries) {
+			  // add the vertex to the map --- there is space
+			  vertex_map[t->verticies[i]] = map_index;
+			  map_index++;
+			}
+			else {
+			  write_block(vertex_map, map_index, triangle_list, file_data_blocks, file_data_block_lengths, &data_bytes);
+				success = 0;
+				map_index = 0;				
+			}
+		}
+	 }
+
+	// now that verticies are all mapped, write out	triangle
+	triangle = new int[3];
+	for(int i=0; i<3; i++) {
+		triangle[i] = vertex_map[t->verticies[i]];
+	}
+	triangle_list.push_back(triangle);
+	triangle_entries++;
+
+	}
+ }
+
+ // add whaterver is left of the map and buffer as final entries
+ write_block(vertex_map, map_index, triangle_list, file_data_blocks, file_data_block_lengths, &data_bytes);
+
+ 
+ int file_data_bytes = data_bytes + 8;
+
+ 
+  // write out file data
+  *buffer = new char[file_data_bytes];
+
+  char* ptr = *buffer;
+
+  memcpy(ptr, (char*)&file_data_bytes, 4);
+  ptr+=4;
+  memcpy(ptr, (char*)&triangle_entries, 4);
+  ptr+=4;
+
+  bl = file_data_block_lengths.begin();
+  for (fb = file_data_blocks.begin(); fb != file_data_blocks.end(); fb++) {
+		// copy buffer
+		memcpy(ptr, (*fb), (*bl));
+		ptr += *bl;
+		delete[] *fb;
+		bl++;
+  }
+
+  *buffer_size = file_data_bytes;
+
+}
+
+
+
 
 
 
@@ -1922,8 +2056,10 @@ void trimesh_t::write_stl(string filename) {
   unsigned int num_facets = (unsigned int)num_triangles;  
   unsigned short attr_byte_count = 0;
 
+  int vertex_count=0;
+
   if (stl_file.fail()) {
-    cout << "Error opening STL output file.\n";
+    cerr << "Error opening STL output file.\n";
     return;
   }
   else {
@@ -1956,7 +2092,7 @@ void trimesh_t::write_stl(string filename) {
       stl_facet.vertex_3.x += 10.0f;
       stl_facet.vertex_3.y += 10.0f;
       stl_facet.vertex_3.z += 10.0f;
-
+	  vertex_count++;
 
 
       stl_file.write((char*)&stl_facet, sizeof(stl_facet_t));

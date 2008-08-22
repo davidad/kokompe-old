@@ -8,7 +8,9 @@ public class mapentry {
 	public boolean newData;
 	public float[] minBox;
 	public float[] maxBox;
-
+    public boolean isKPF;  //  true for KPF, false for STL 
+    public boolean isCompressed;  // true for GZ, false for not
+    
 	mapentry() {
 		displayList = 0;
 		urlLastModified = 0;
