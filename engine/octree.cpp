@@ -33,7 +33,7 @@ using namespace std;
   // Destructor
   // Deleting an octree recursively deletes all of its children
   octree_t::~octree_t() {
-    if (expression_root)
+	if (expression_root)
       delete expression;
 
     if (children != NULL) {
@@ -42,6 +42,10 @@ using namespace std;
       }
       delete []children;
     }
+  }
+
+  void octree_t::delete_cache() {
+	expression->delete_cache();
   }
 
   // Eval    
@@ -270,6 +274,10 @@ int octree_t::differential_eval(float x1, float y1, float z1, float x2, float y2
 		p1.set_point(x1,y1,z1);
 		p2.set_point(x2,y2,z2);
 		
+		// Clause table is created based on number of clauses in actual expression
+		// Clause numbers are universal
+		// Indicies to clause table are not equal to clause numbers!
+
 		// Evaluate each clause of the expression
 		int num_clauses = expression->clause_table->num_clauses;
 		interval_t v1;
@@ -289,7 +297,7 @@ int octree_t::differential_eval(float x1, float y1, float z1, float x2, float y2
 		//	cout << "no unequal clause found!!!" << endl;
 		//}
 		if (unequal_count > 1) {
-		//	cout << "found " << unequal_count << " unequal clauses!" << endl;
+	//		cout << "found " << unequal_count << " unequal clauses!" << endl;
 	    // This case (rare, but happens) could be addressed with a Sat-Solver
 		// type algorithim to check to see which of the unequal clauses actually
 		// changes the value of the expression --- given a proper representation
@@ -299,6 +307,23 @@ int octree_t::differential_eval(float x1, float y1, float z1, float x2, float y2
 
   //clause = -1;
 		}
+		if (unequal_count == 0) {
+			interval_t i1, i2;
+			
+			i1 = expression->eval(p1);
+			i2 = expression->eval(p2);
+			// TODO: Investigate when this happens!  It may be an intervalization bug,
+			// and it may be leading to some of the "chips" in corners and edges!
+			// (Schema is: doesn't matter which interval a points is evaled in --- should be correct
+			// regardless because closed intervals are used.  But I suppose a rounding error might
+			// mess this up?  TRACE THIS!  (happens on teapot once)
+	//		cout << "found 0 unequal clauses!!!\n";
+		}
+		if ((unequal_count > 1) && (clause == -1)) {
+	//		cout << "found unequal clause with unknown number.\n";
+		}
+
+
 		return(clause);
 	}
 	else {
@@ -516,6 +541,7 @@ void octree_t::create_cache(int lvl) {
 		int size = 4*(1 << lvl);   // do in 2 x 2 x 2 blocks
 
 	expression->mark_dependence();
+	expression->unmark();
 	expression->create_cache(size);
 
 }

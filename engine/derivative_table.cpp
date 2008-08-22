@@ -58,6 +58,7 @@ void derivative_table_t::create(expression_t &ex) {
 	for (i=0; i<num_clauses; i++) {
 	  // a special version of prune would be needed for pruning here,
 	  // because this pruning is over the whole interval.
+	  // TODO add it if needed (prob. not a huge win)
 
 		int c = ex.clause_table->clauses[i]->clause_number;
 		derivatives_x[c] = new expression_t();

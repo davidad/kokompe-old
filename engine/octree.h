@@ -35,6 +35,8 @@ private:
   int eval_at_center();
   void trimesh_core(trimesh_t **trimesh, cube_surface_t **cube_surface, int x, int y, int z, int size, float stepsize, int cache_offset);
   void fill_leaf(trimesh_t *trimesh, cube_surface_t *cube_surface, int x, int y, int z, int size, float stepsize, int cache_offset);
+
+
 public:
   expression_t *expression;
   octree_t(expression_t& expression_in, space_interval_t& space_interval_in);
@@ -47,6 +49,7 @@ public:
   int differential_eval(float x1, float y1, float z1, float x2, float y2, float z2);
   int cached_eval_at_point(float x, float y, float z, int lx, int ly, int lz, int cache_offset);
   void create_cache(int lvl);
+  void delete_cache();
 
   // Create a (level 0) trimesh for the octree --- returns a pointer to it.  your responsibility to delete when done
   void trimesh(trimesh_t **trimesh);

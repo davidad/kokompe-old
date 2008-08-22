@@ -929,8 +929,8 @@ void trimesh_t::refine() {
 		}
 
 		// Line search along point for edge by binary search
-		for(i=0; i<16; i++) {	 // depth at 8 for the moment
-			mid_point = midpoint(start_point, end_point);
+		for(i=0; i<8; i++) {	 // depth at 8 for the moment  TODO is this depth crazy?   (was 16)
+			mid_point = midpoint(start_point, end_point);  
 			pt_value = octree->eval_at_point(mid_point.x, mid_point.y, mid_point.z);
 			if (pt_value == start_value) {
 				start_point = mid_point;
@@ -949,6 +949,10 @@ void trimesh_t::refine() {
 		vertex_outside_point_iterator++;
 	}
 }
+
+// NOTE: Results should be valid on the whole closed interval.  So when evaluating points on the boundary,
+// it doesn't matter which interval is used; the results should be correct.
+
 /*
 int ratio_test(vertex_t verticies[3], int* bad_vertex) {
 	vector_t cross_product;

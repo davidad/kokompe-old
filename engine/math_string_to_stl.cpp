@@ -154,6 +154,9 @@ int main(int argc, char** argv) {
   cerr << "Simplifying expression.\n";
   ex.prune(si, 1, &dummy, 0, NULL, 1);
   
+  cerr << "Converting syntax tree to syntax graph.\n";
+  ex.convert_to_graph();
+
   cerr << "Marking clause numbers.\n";
   ex.mark_clause_numbers();
 
@@ -207,6 +210,8 @@ int main(int argc, char** argv) {
 
    delete trimesh;
  
+   octree.delete_cache();
+
    cerr << "Done.\n";
 
   return(0);  
