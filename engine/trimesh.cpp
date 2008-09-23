@@ -133,7 +133,7 @@ void trimesh_t::add_triangle(vertex_t *v1, vertex_t *v2, vertex_t *v3, vector_t 
 
 		// Add references to verticies used-lists
 		for (int i=0; i<3; i++) {
-			node->verticies[i]->triangle_list.push_back(node);  // add reference to vertex's users list
+			node->verticies[i]->users.push_back((void*)node);  // add reference to vertex's users list
 		}
 			
 
@@ -265,22 +265,22 @@ void trimesh_t::add_triangle(vertex_t *v1, vertex_t *v2, vertex_t *v3, vector_t 
 // old vertex with a reference to the new vertex
 // IS THIS SUFFICIENT?
 void trimesh_t::replace_vertex(vertex_t *oldv, vertex_t *newv) {
-	list<trimesh_node_t*>::iterator triangle_iterator;
-	list<trimesh_node_t*>::iterator t1;
-	list<trimesh_node_t*>::iterator t2;
+	list<void*>::iterator triangle_iterator;
+	list<void*>::iterator t1;
+	list<void*>::iterator t2;
 
 			// Replace references to the old vertex with the new vertex
-			for(triangle_iterator = oldv->triangle_list.begin(); triangle_iterator != oldv->triangle_list.end(); triangle_iterator++) {
+			for(triangle_iterator = oldv->users.begin(); triangle_iterator != oldv->users.end(); triangle_iterator++) {
 				for (int i=0; i<3; i++) {
-					if ((*triangle_iterator)->verticies[i] == oldv) {
-						(*triangle_iterator)->verticies[i] = newv;
+					if (((trimesh_node_t*)(*triangle_iterator))->verticies[i] == oldv) {
+						((trimesh_node_t*)(*triangle_iterator))->verticies[i] = newv;
 					}
 				}
-				newv->triangle_list.push_back(*triangle_iterator);
+				newv->users.push_back((void*)*triangle_iterator);
 			}
 
 			// Zero out this vertex's triangle list so we know that we can discard it later
-			oldv->triangle_list.clear();
+			oldv->users.clear();
 
 /*
 			// Now check to see if any of the triangles on this vertex's triangle list are in fact

@@ -15,7 +15,7 @@ public:
        	space_interval_t si;
 	int dirty;
 	int clause;
-	list<trimesh_node_t*> triangle_list;
+	list<void*> users;   // list of trimesh_nodes or path_nodes that use this vertex
 	vertex_t(float x, float y, float z)
 		: vector_t(x,y,z),
 	  number(-1), dirty(0),clause(-1) {		

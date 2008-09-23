@@ -6,6 +6,7 @@
 #include "vector.h"
 #include "trimesh.h"
 #include "cube_surface.h"
+#include "path.h"
 
 class eval_info_t {
  public:
@@ -50,6 +51,9 @@ public:
   int cached_eval_at_point(float x, float y, float z, int lx, int ly, int lz, int cache_offset);
   void create_cache(int lvl);
   void delete_cache();
+
+  void path(path_t **path);
+
 
   // Create a (level 0) trimesh for the octree --- returns a pointer to it.  your responsibility to delete when done
   void trimesh(trimesh_t **trimesh);

@@ -2,6 +2,7 @@
 #include "cube_surface.h"
 #include "vector.h"
 #include "vertex.h"
+#include "path.h"
 #include <cmath>
 using namespace std;
 
@@ -546,6 +547,139 @@ void octree_t::create_cache(int lvl) {
 
 }
 
+
+
+inline void path_create_vertex(path_t *path, char *results, vector_t *points, vertex_t **verticies, int vertex_index, int left_pixel, int right_pixel, float xoffset, float yoffset) {
+	vector_t * inside_point;
+	vector_t * outside_point;
+	
+	if (verticies[vertex_index] == NULL) {
+		verticies[vertex_index] = new vertex_t();
+		verticies[vertex_index]->set(points[left_pixel].x + xoffset, points[left_pixel].y + yoffset, 0.0f);
+		if (results[left_pixel]) {
+			inside_point = new vector_t(points[left_pixel]);
+			outside_point = new vector_t(points[right_pixel]);
+		}
+		else {
+			outside_point = new vector_t(points[left_pixel]);
+			inside_point = new vector_t(points[right_pixel]);
+		}
+		path->add_vertex(verticies[vertex_index], inside_point, outside_point);
+	}
+}
+
+
+
+// Create a populated path for the octree, using the 
+// octree traveral method.  Analagous to trimesh
+
+void octree_t::path(path_t **path) {
+	// For simplicity, instead of using tree recusion like trimesh,
+	// this just evaluates the expresssion on a grid
+	// and explicitly stores the actual grid in memory.  The reason 
+	// is that it is cheap to do this --- even a 1 ft. by 1 ft.
+	// object with insane 1 mil. voxel resolution is only 144 Mbit,
+	// or 144 MByte if bytes are used.  (oops...not inlcuding points)
+	
+	// HMM...W/O ANY, needs a vertex pointer per point
+	// each point is:
+	// char, 4-byte pointer, and vector (4-byte*3) = 17 bytes/point
+	// which is 2.4 GB --- too much!
+	// we can keep this for now, and use it eventually as the leaf builder,
+	// but it will need to be changed.
+
+	// TODO: This could be switched over to be done like the 3D trimesh tree
+	// later if the need arises.  
+
+	int size = 4*(1 << recursion_level);   // do as 2 x 2 blocks per octree region
+	
+
+	float box_size = space_interval.X.get_upper() - space_interval.X.get_lower();
+
+	float stepsize = box_size / (float)size;
+	float range = stepsize / 2.0f;
+
+	char *results = new char[size*size];
+	vector_t *points = new vector_t[size*size];
+	vertex_t **verticies = new vertex_t*[(size+1)*(size+1)];
+	vector_t inside_point;
+	vector_t outside_point;
+    // TODO: As written, this generates more than one inside point for each point
+	// could be optimized to just generate one like the trimesh stuff
+
+	memset(verticies, 0, sizeof(vertex_t*)*(size+1)*(size*1));
+
+	space_interval_t eval_interval;
+	eval_interval.X = space_interval.X;
+	eval_interval.Y = space_interval.Y;
+	eval_interval.Z.set_real_number(-0.005);
+
+	eval_on_grid(eval_interval, size, size, 1, results, points );
+  
+	// Build path, skinning the pixel grid
+
+	*path = new path_t();
+	(*path)->bb_x1 = space_interval.X.get_lower();
+	(*path)->bb_y1 = space_interval.Y.get_lower();
+	(*path)->bb_x2 = space_interval.X.get_upper();
+	(*path)->bb_y2 = space_interval.Y.get_upper();
+
+
+
+	// Vertical edges
+	for (int x=0; x < (size-1); x++) {
+		for (int y=1; y < (size-1); y++) {
+			int left_pixel = y*size + x;
+			int right_pixel = y*size + x + 1;
+	
+			if (results[left_pixel] != results[right_pixel]) {
+				// Build an edge.
+				// First check verticies
+				int top_vertex = y*(size+1) + x + 1;
+				int bottom_vertex = (y+1)*(size+1) + x + 1;
+				
+				// Create verticies if needed
+				path_create_vertex(*path, results, points, verticies, top_vertex, left_pixel, right_pixel, +range, -range);
+				path_create_vertex(*path, results, points, verticies, bottom_vertex, left_pixel, right_pixel, +range, -range);
+
+				// Create node and add to vertex.
+				(*path)->add_edge(verticies[top_vertex], verticies[bottom_vertex]);
+			}
+		}
+	}
+
+
+	// Horizontal edges
+	for (int x=1; x < (size-1); x++) {
+		for (int y=0; y < (size-1); y++) {
+			int left_pixel = y*size + x;
+			int right_pixel = (y+1)*size + x;
+	
+			if (results[left_pixel] != results[right_pixel]) {
+				// Build an edge.
+				// First check verticies
+				int top_vertex = (y+1)*(size+1) + x;
+				int bottom_vertex = (y+1)*(size+1) + x + 1;
+				
+				// Create verticies if needed
+				path_create_vertex(*path, results, points, verticies, top_vertex, left_pixel, right_pixel, +range, -range);
+				path_create_vertex(*path, results, points, verticies, bottom_vertex, left_pixel, right_pixel, +range, -range);
+
+				// Create node and add to vertex.
+				(*path)->add_edge(verticies[top_vertex], verticies[bottom_vertex]);
+			}
+		}
+	}
+
+	delete[] results;
+	delete[] points;
+	delete[] verticies;
+
+}
+
+
+
+
 // Create a populated trimesh for the octree, using the 
 // octree traversal method, rather than the old layer-by-layer
 // method.   Pass in a pointer to a trimesh object --- a new trimesh
@@ -556,12 +690,14 @@ void octree_t::trimesh(trimesh_t **trimesh) {
 	
 	int size = 4*(1 << recursion_level);   // do in 2 x 2 x 2 blocks
 	
-	// For now, this function always evaluates over a box -1, 1
-	// This would be easy to change
+	// Right now this always evaluates over an origin-centered, cubic region
+
+	float box_size = space_interval.X.get_upper() - space_interval.X.get_lower();
+	
 	int x = -size/2;
 	int y = -size/2;
 	int z = -size/2;
-	float stepsize = 2.0f / (float)size;
+	float stepsize = box_size / (float)size;
 	int cache_offset = size/2;
 
 	// Create the expression caches
@@ -569,8 +705,6 @@ void octree_t::trimesh(trimesh_t **trimesh) {
 	// that are dependent only on one variable.  For each, create
 	// an array of interval_t's and put a pointer to it.
 	
-
-
 	// DO the evaluation
 	trimesh_core(trimesh, &cube_surface, x, y, z, size, stepsize, cache_offset);
 	// Delete final cube surface data structure

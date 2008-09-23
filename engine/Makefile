@@ -5,7 +5,7 @@ XMLRPC_LDFLAGS := -lwwwhttp -lwwwxml -lxmlrpc -lxmlrpc_server -lxmlrpc_client -l
 LIBS := -lglut -lpython2.5
 
 
-engine:=octree.o expression.o interval.o space_interval.o vector.o trimesh.o derivative_table.o plane.o cube_surface.o square_bitmap.o
+engine:=octree.o expression.o interval.o space_interval.o vector.o trimesh.o derivative_table.o plane.o cube_surface.o square_bitmap.o path.o
 
 geomeval_obj:=geomeval.o tool_path.o expand.o $(engine)
 geomeval:=geomeval

@@ -10,11 +10,13 @@ using namespace std;
 
 class space_interval_t {
 private:
+
+
+ public:
   interval_t X;
   interval_t Y;
   interval_t Z;
 
- public:
   space_interval_t();
   space_interval_t(interval_t& X_interval, interval_t& Y_interval, interval_t& Z_interval);
   void split(int i);
