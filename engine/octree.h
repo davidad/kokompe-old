@@ -22,6 +22,10 @@ class eval_info_t {
 class trimesh_t;
 class cube_surface_t;
 
+
+extern "C" int eval_at_point_for_bogus_sphere(float x, float y, float z);
+
+
 class octree_t {
 private:
 

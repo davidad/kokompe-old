@@ -40,7 +40,7 @@ image := image
 compile: all
 
 
-all:  $(geomeval) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)  $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath) $(kokompe)
+all:  $(geomeval) $(image_obj) $(infix_to_postfix) $(math_string_to_stl) $(stl_to_ppm)  $(math_string_slice_to_ppm) $(math_string_slice_to_toolpath) $(kokompe) libengine
 
 $(kokompe): $(kokompe_obj)
 	g++ -o $@ $(kokompe_obj) $(LDFLAGS) $(LIBS)
@@ -71,6 +71,9 @@ $(math_string_slice_to_toolpath): $(math_string_slice_to_toolpath_obj)
 
 %.o: %.c
 	gcc -c -o $@ $< $(CFLAGS)
+
+libengine: $(engine)
+	$(AR) -r libengine.a $(engine)
 
 
 # debug build	

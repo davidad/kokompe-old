@@ -3,6 +3,7 @@
 #include "vector.h"
 #include "vertex.h"
 #include "path.h"
+#include <string.h>
 #include <cmath>
 using namespace std;
 
@@ -147,6 +148,13 @@ interval_t octree_t::get_value_at_point(float x, float y, float z) {
     return(value);
   else
     return(children[space_interval.get_zone(x,y,z)]->get_value_at_point(x, y, z));
+}
+
+int eval_at_point_for_bogus_sphere(float x, float y, float z) {
+  float x2 = x*x;
+  float y2 = y*y;
+  float z2 = z*z;
+  return (x2+y2+z2-3 > 0) ? 1 : -1;
 }
 
 int octree_t::eval_at_point(float x, float y, float z) {
